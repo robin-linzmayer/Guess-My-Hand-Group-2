@@ -1,7 +1,7 @@
 # Project 2: Guess My Hand
 
 ## Citation and License
-This project belongs to Department of Computer Science, Columbia University. It may be used for educational purposes under Creative Commons **with proper attribution and citation** for the author TAs ** Raavi Gupta (First Author), Divyang Mittal and the Instructor, Prof. Kenneth Ross**.
+This project belongs to Department of Computer Science, Columbia University. It may be used for educational purposes under Creative Commons **with proper attribution and citation** for the author TAs **Raavi Gupta (First Author), Divyang Mittal and the Instructor, Prof. Kenneth Ross**.
 
 ## Summary
 
