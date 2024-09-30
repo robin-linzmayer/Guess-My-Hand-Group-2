@@ -237,33 +237,31 @@ def import_class_from_file(folder, file_name, class_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Guess My Hand")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for card shuffling")
-    parser.add_argument('--nsStrategy', type=int, choices=range(1, 11), help='North-South Strategy (1-10)')
-    parser.add_argument('--ewStrategy', type=int, choices=range(1, 11), help='East-West Strategy (1-10)')
-    parser.add_argument('--nsGuesses', type=int, choices=range(1, 11), help='North-South Guesses (1-10)')
-    parser.add_argument('--ewGuesses', type=int, choices=range(1, 11), help='East-West Guesses (1-10)')
+    parser.add_argument('--nsStrategy', type=int, choices=range(0, 11), help='North-South Strategy (1-10)')
+    parser.add_argument('--ewStrategy', type=int, choices=range(0, 11), help='East-West Strategy (1-10)')
+    parser.add_argument('--nsGuesses', type=int, choices=range(0, 11), help='North-South Guesses (1-10)')
+    parser.add_argument('--ewGuesses', type=int, choices=range(0, 11), help='East-West Guesses (1-10)')
 
     args = parser.parse_args()
     folder = "teams"
     
-
-    if any([args.nsStrategy, args.ewStrategy, args.nsGuesses, args.ewGuesses]):
     # Import strategies based on flag values
-        if args.nsStrategy:
-            file_name = f"strategies_{args.nsStrategy}"
-            class_name = "playing"
-            NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
-        if args.ewStrategy:
-            file_name = f"strategies_{args.ewStrategy}"
-            class_name = "playing"
-            EastWestStrategy = import_class_from_file(folder, file_name, class_name)
-        if args.nsGuesses:
-            file_name = f"strategies_{args.nsGuesses}"
-            class_name = "guessing"
-            NorthSouthGuesses = import_class_from_file(folder, file_name, class_name)
-        if args.ewGuesses:
-            file_name = f"strategies_{args.ewGuesses}"
-            class_name = "guessing"
-            EastWestGuesses = import_class_from_file(folder, file_name, class_name)
+    if args.nsStrategy in range(0, 11):
+        file_name = f"strategies_{args.nsStrategy}"
+        class_name = "playing"
+        NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+    if args.ewStrategy in range(0, 11):
+        file_name = f"strategies_{args.ewStrategy}"
+        class_name = "playing"
+        EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+    if args.nsGuesses in range(0, 11):
+        file_name = f"strategies_{args.nsGuesses}"
+        class_name = "guessing"
+        NorthSouthGuesses = import_class_from_file(folder, file_name, class_name)
+    if args.ewGuesses in range(0, 11):
+        file_name = f"strategies_{args.ewGuesses}"
+        class_name = "guessing"
+        EastWestGuesses = import_class_from_file(folder, file_name, class_name)
     else:
         print("Running default code...")
 
