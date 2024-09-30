@@ -54,4 +54,6 @@ For submitting the code for each deliverable, open a pull request to merge your 
 1. playing(player, deck): Your strategy for playing a card given the information about your c's and the exposed cards of other players. 
 2. guessing(player, cards, round): Your strategy for guessing the cards given the round number. Note: This function should return the guessed cards in the hands of their partner. For example, if the input player is North, the output should be the guess of the cards present in the hand of South.
 
+A sample submission format for team 0 (that does not exist) has been provided in the teams folder.
+
 
