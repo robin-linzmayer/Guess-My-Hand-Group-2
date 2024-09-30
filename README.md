@@ -45,9 +45,9 @@ python Guess-my-Hand-GUI.py  [--seed]
 ## Testing the code
 
 For testing the code internally in the team, you can use and modify the code present in player_strategies.py and guessing_functions.py.
-Please only modify the code present in the functions:
+Please only modify the code present in the following functions:
 1. NorthSouthStrategy and EastWestStrategy for the file player_strategies.py
-2. NorthSouthGuess and EastWestGuess the file guessing_functions.py
+2. NorthSouthGuess and EastWestGuess for the file guessing_functions.py
 
 ## Submission
 
