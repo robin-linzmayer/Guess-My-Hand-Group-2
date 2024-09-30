@@ -30,6 +30,10 @@ To install tkinter on macOS, run the following command:
 ```bash
 brew install python-tk@3.X
 ```
+For Windows, tkinter can be installed using pip:
+```bash
+pip install tk
+```
 
 ## Usage
 
