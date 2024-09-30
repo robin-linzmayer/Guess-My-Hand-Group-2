@@ -40,8 +40,17 @@ pip install tk
 To view all options use python Guess-my-Hand-GUI.py -h. Apart from seed, the other flags will be used for competition among different teams.
 ```bash
 python Guess-my-Hand-GUI.py  [--seed] 
-      
 ```
+
+## Testing the code
+
+For testing the code internally in the team, you can use and modify the code present in player_strategies.py and guessing_functions.py.
+Please only modify the code present in the functions:
+1. NorthSouthStrategy and EastWestStrategy for the file player_strategies.py
+2. NorthSouthGuess and EastWestGuess the file guessing_functions.py
+
+## Submission
+
 
 ## Debugging
 
