@@ -24,8 +24,6 @@ Raavi Gupta
 
 ## Installation
 
-Requires **python3.10** or higher
-
 To install tkinter on macOS, run the following command:
 ```bash
 brew install python-tk@3.X
