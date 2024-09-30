@@ -20,8 +20,6 @@ Raavi Gupta
 1. Divyang Mittal
 2. Raavi Gupta
 
-### All course projects
-
 ## Installation
 
 To install tkinter on macOS, run the following command:
