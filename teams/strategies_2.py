@@ -1,11 +1,10 @@
 import random
-from CardGame import Card, Deck
 
 def playing(player, deck):
     """
     Playing strategy goes here (what card will the player expose to their partner)
     """
-
+    # Todo some basic way of conveying information to be used in guessing
     return 0
 
 def get_guess_deck(player, cards):
@@ -32,4 +31,6 @@ def guessing(player, cards, round):
     Guessing strategy goes here (number of guesses of your partner's cards)
     """
     guess_deck = get_guess_deck(player, cards)
+    # Todo use exposed hand from partner on turn to reweight guesses
+    # Todo in guess_deck there could be a distribution of probablities (currently uniform) to weight guessing.
     return random.sample(guess_deck, 13 - round)
