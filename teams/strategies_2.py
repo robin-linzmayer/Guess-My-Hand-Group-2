@@ -37,7 +37,7 @@ def get_max_value_index(player):
             max_index = i
     return max_index
 
-def use_max_value_index(exposed_card, guess_deck):
+def use_max_value_index(exposed_card, guess_deck, round):
     """
     Use the upper bound value strategy to inform guess
     """
@@ -58,7 +58,7 @@ def use_max_value_index(exposed_card, guess_deck):
 
     # Todo this would be improved by guessing all suits of that max value of the card that our partner exposed (since it is asserting that they have at least one card to set that max).
 
-    return guess_deck
+    return random.sample(guess_deck, 13 - round)
 
 def get_guess_deck(player, cards):
     """
@@ -92,5 +92,8 @@ def guessing(player, cards, round):
     exposed_card = get_partner_exposed_card(player)
 
     # Partner player's exposed card is used as an upper bound for values to guess from.
-    guess_deck = use_max_value_index(exposed_card, guess_deck)
-    return random.sample(guess_deck, 13 - round)
+    guesses = use_max_value_index(exposed_card, guess_deck, round)
+
+    # Todo don't duplicate guesses (keep a history of guesses)
+    print(player.cVals, sum(player.cVals))
+    return guesses
