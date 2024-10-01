@@ -1,11 +1,61 @@
 import random
+from CardGame import Deck
+
+PARTNERS = {
+    'North': 'South',
+    'East': 'West',
+    'South': 'North',
+    'West': 'East',
+}
+
+deck = Deck()
+RANKED_CARD_VALUES = deck.values
 
 def playing(player, deck):
     """
     Playing strategy goes here (what card will the player expose to their partner)
     """
-    # Todo some basic way of conveying information to be used in guessing
-    return 0
+    if not player.hand:
+        return None
+
+    card_to_play = get_max_value_index(player)
+    print("Play: ", card_to_play)
+    return card_to_play
+
+def get_max_value_index(player):
+    """
+    Play card to create upper bound value.
+    """
+    max_index = 0
+    max_value = -1
+
+    for i, card in enumerate(player.hand):
+        value = RANKED_CARD_VALUES.index(card.value)
+        if value > max_value:
+            max_value = value
+            max_index = i
+    return max_index
+
+def use_max_value_index(exposed_card, guess_deck):
+    """
+    Use the upper bound value strategy to inform guess
+    """
+    print(f"Exposed Card: {exposed_card}")
+    # Get ranked value index of the card your partner exposed
+    for index, value in enumerate(RANKED_CARD_VALUES):
+        if value == exposed_card.value:
+            print(f"Value exposed as upper bound: {value} with the index of {index}")
+            max_value_index = index
+            break
+
+    possible_values = RANKED_CARD_VALUES[:max_value_index + 1]
+    print(f"Remaining possible values: {possible_values}")
+    for card in guess_deck:
+        if card.value not in possible_values:
+            guess_deck.remove(card)
+            print(f"Removed {card}")
+
+    return guess_deck
 
 def get_guess_deck(player, cards):
     """
@@ -26,11 +76,18 @@ def get_guess_deck(player, cards):
             guess_deck = guess_deck - set(exposed_cards)
     return list(guess_deck)
 
+def get_partner_exposed_card(player):
+    return player.exposed_cards[PARTNERS[player.name]][-1]
+
 def guessing(player, cards, round):
     """
     Guessing strategy goes here (number of guesses of your partner's cards)
     """
+    print(" ")
+    print(f"Player: {player.name}")
     guess_deck = get_guess_deck(player, cards)
-    # Todo use exposed hand from partner on turn to reweight guesses
-    # Todo in guess_deck there could be a distribution of probablities (currently uniform) to weight guessing.
+    exposed_card = get_partner_exposed_card(player)
+
+    # Partner player's exposed card is used as an upper bound for values to guess from.
+    guess_deck = use_max_value_index(exposed_card, guess_deck)
     return random.sample(guess_deck, 13 - round)
