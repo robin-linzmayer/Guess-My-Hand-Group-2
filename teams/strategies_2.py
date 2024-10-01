@@ -55,6 +55,8 @@ def use_max_value_index(exposed_card, guess_deck):
             guess_deck.remove(card)
             print(f"Removed {card}")
 
+    # Todo this would be improved by guessing all suits of that max value of the card that our partner exposed (since it is asserting that they have at least one card to set that max).
+
     return guess_deck
 
 def get_guess_deck(player, cards):
