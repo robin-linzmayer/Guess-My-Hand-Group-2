@@ -257,11 +257,11 @@ if __name__ == "__main__":
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
         class_name = "guessing"
-        NorthSouthGuesses = import_class_from_file(folder, file_name, class_name)
+        NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
         class_name = "guessing"
-        EastWestGuesses = import_class_from_file(folder, file_name, class_name)
+        EastWestGuess = import_class_from_file(folder, file_name, class_name)
     else:
         print("Running default code...")
 
