@@ -1,20 +1,35 @@
 import random
-
+from CardGame import Card, Deck
 
 def playing(player, deck):
     """
-    Playing strategy goes here
+    Playing strategy goes here (what card will the player expose to their partner)
     """
-    print("Playing strategy")
-    if not player.hand:
-        return None
 
     return 0
 
+def get_guess_deck(player, cards):
+    """
+    This function takes in the list of all cards in the game and removes cards that would be illogical guesses.
+    Illogical guesses include:
+        - Cards in the players own hand
+        - Cards that have been exposed by other players in the game
+
+    :param player:
+    :param cards: list[Card]
+    :return: list[Card]
+    """
+    # Remove cards in player's hand
+    guess_deck = set(cards) - set(player.hand)
+    # Remove cards that have been exposed
+    for _, exposed_cards in player.exposed_cards.items():
+        if len(exposed_cards) > 0:
+            guess_deck = guess_deck - set(exposed_cards)
+    return list(guess_deck)
 
 def guessing(player, cards, round):
     """
-        Guessing strategy goes here
+    Guessing strategy goes here (number of guesses of your partner's cards)
     """
-    print("Guessing strategy")
-    return random.sample(cards, 13 - round)
+    guess_deck = get_guess_deck(player, cards)
+    return random.sample(guess_deck, 13 - round)
