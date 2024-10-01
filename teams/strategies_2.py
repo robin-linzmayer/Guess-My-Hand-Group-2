@@ -18,6 +18,7 @@ def playing(player, deck):
     if not player.hand:
         return None
 
+    # Todo set lower bound (maybe on suit?) to get a smaller range for guessing.
     card_to_play = get_max_value_index(player)
     print("Play: ", card_to_play)
     return card_to_play
