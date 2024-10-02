@@ -2,6 +2,7 @@ import tkinter as tk
 import random
 import argparse
 import importlib.util
+from tqdm import tqdm
 import sys
 from copy import copy
 from CardGame import Card, Deck, Player
@@ -306,7 +307,7 @@ if __name__ == "__main__":
 
     if args.nSims:
         total_scores = {"NS": 0, "EW": 0}
-        for _ in range(args.nSims):
+        for _ in tqdm(range(args.nSims)):
             seed = random.randint(0, 10000) 
             scores = run_game_without_gui(seed)
             total_scores["NS"] += scores["NS"]
