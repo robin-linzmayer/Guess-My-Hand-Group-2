@@ -1,4 +1,5 @@
 import random
+from copy import copy
 
 class Card:
     def __init__(self, suit, value):
@@ -15,6 +16,7 @@ class Deck:
         self.suits = ["Hearts", "Diamonds", "Clubs", "Spades"] 
         self.values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
         self.cards = [Card(suit, value) for suit in self.suits for value in self.values]
+        self.copyCards = copy(self.cards)
         random.seed(seed)
         random.shuffle(self.cards)
 
