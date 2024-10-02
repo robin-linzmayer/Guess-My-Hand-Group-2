@@ -54,4 +54,42 @@ def playing(player, deck):
 
 
 def guessing(player, cards, round):
-    return random.sample(cards, 13 - round)
+
+    teammate_name = {
+        "North": "South",
+        "East": "West",
+        "South": "North",
+        "West": "East",
+    }
+
+    teammate_last_card = None
+    if len(player.exposed_cards[teammate_name[player.name]]) > 0:
+        teammate_last_card = player.exposed_cards[teammate_name[player.name]][-1]
+
+    if not teammate_last_card:
+        return random.sample(cards, 13 - round)
+
+    card_value = {
+        "A": 1,
+        "J": 11,
+        "Q": 12,
+        "K": 13,
+    }
+
+    played_cards = sum(list(player.exposed_cards.values()), [])
+    possible_cards = set()
+
+    all_suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
+    all_values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+
+    for card in [Card(suit, value) for suit in all_suits for value in all_values]:
+        if str(card) not in [str(c) for c in played_cards]:
+            possible_cards.add(card)
+
+    seed = int(
+        card_value.get(teammate_last_card.value, teammate_last_card.value)
+    ) + 13 * (list(teammate_last_card.map.keys()).index(teammate_last_card.suit))
+    np.random.seed(seed)
+    combination = np.random.choice(list(possible_cards), (13 - round), replace=False)
+
+    return combination
