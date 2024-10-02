@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from CardGame import Card, Deck, Player
 
 
 def playing(player, deck):
@@ -12,8 +13,11 @@ def playing(player, deck):
     played_cards = sum(list(player.exposed_cards.values()), [])
     possible_cards = set()
 
-    for card in player.hand:
-        if card not in played_cards:
+    all_suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
+    all_values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+
+    for card in [Card(suit, value) for suit in all_suits for value in all_values]:
+        if str(card) not in [str(c) for c in played_cards]:
             possible_cards.add(card)
 
     card_to_play = None
@@ -36,7 +40,7 @@ def playing(player, deck):
         )
         score = 0
         for c in combination:
-            if c in player.hand:
+            if str(c) in [str(c) for c in player.hand]:
                 score += 1
         if score > highest_score:
             highest_score = score
@@ -44,7 +48,6 @@ def playing(player, deck):
 
     if card_to_play:
         print(f"Highest score: {highest_score}")
-        print(f"Card to play: {str(card_to_play)}")
         return player.hand.index(card_to_play)
 
     return 0
