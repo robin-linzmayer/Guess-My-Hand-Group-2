@@ -82,7 +82,7 @@ def guessing(player, cards, round):
     # for card in potential_guesses:
     #     val_check_arr.append(card.value)
     # print(val_check_arr)
-    
+
     # # Remove from potential_guesses if in our own hand 
     # for card in player.hands:
     #     if card in potential_guesses:
@@ -93,4 +93,4 @@ def guessing(player, cards, round):
     #     if card in potential_guesses:
     #         potential_guesses.remove(card)
 
-    return potential_guesses[:-1]
+    return potential_guesses[:-round]
