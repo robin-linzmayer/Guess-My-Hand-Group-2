@@ -16,6 +16,7 @@ def playing(player, deck):
         if value > max_value:
             max_value = value
             max_index = i
+    
     return max_index
 
 def guessing(player, cards, round):
