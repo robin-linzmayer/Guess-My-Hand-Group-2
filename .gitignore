@@ -1,2 +1,4 @@
 __pycache__/
 teams/__pycache__/
+.vscode/
+venv/
