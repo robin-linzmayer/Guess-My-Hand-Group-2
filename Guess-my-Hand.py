@@ -2,6 +2,7 @@ import tkinter as tk
 import random
 import argparse
 import importlib.util
+from tqdm import tqdm
 import sys
 from copy import copy
 from CardGame import Card, Deck, Player
@@ -171,9 +172,13 @@ class Game:
                     other_player.update_exposed_cards(player.name, played_card)
 
         northGuess = NorthSouthGuess(self.players[0], self.copyCards, self.round)
+        self.players[0].guesses.append(northGuess)
         eastGuess = EastWestGuess(self.players[1], self.copyCards, self.round)
+        self.players[1].guesses.append(eastGuess)
         southGuess = NorthSouthGuess(self.players[2], self.copyCards, self.round)
+        self.players[2].guesses.append(southGuess)
         westGuess = EastWestGuess(self.players[3], self.copyCards, self.round)
+        self.players[3].guesses.append(westGuess)
         for widget in self.guesses_frame.winfo_children()[1:]:
             widget.destroy()
 
@@ -234,6 +239,57 @@ def import_class_from_file(folder, file_name, class_name):
     spec.loader.exec_module(module)
     return getattr(module, class_name)
 
+def run_game_without_gui(seed):
+    deck = Deck(seed)
+    players = [
+        Player("North", NorthSouthStrategy),
+        Player("East", EastWestStrategy),
+        Player("South", NorthSouthStrategy),
+        Player("West", EastWestStrategy)
+    ]
+    
+    # Deal initial cards
+    for _ in range(13):
+        for player in players:
+            player.draw(deck)
+    
+    # Play the game
+    ns_score = 0
+    ew_score = 0
+    round = 1
+    while any(len(player.hand) > 0 for player in players):
+        for player in players:
+            card_index = player.strategy(player, deck)
+            played_card = player.play_card(card_index)
+            for other_player in players:
+                if other_player != player:
+                    other_player.update_exposed_cards(player.name, played_card)
+        
+    
+    # Calculate final scores
+        northGuess = NorthSouthGuess(players[0], deck.copyCards, round)
+        players[0].guesses.append(northGuess)
+        eastGuess = EastWestGuess(players[1], deck.copyCards, round)
+        players[1].guesses.append(eastGuess)
+        southGuess = NorthSouthGuess(players[2], deck.copyCards, round)
+        players[2].guesses.append(southGuess)
+        westGuess = EastWestGuess(players[3], deck.copyCards, round)
+        players[3].guesses.append(westGuess)
+        cNorth = len(set(northGuess).intersection(set(players[2].hand)))
+        players[0].cVals.append(cNorth)
+        cEast = len(set(eastGuess).intersection(set(players[3].hand)))
+        players[1].cVals.append(cEast)
+        cSouth = len(set(southGuess).intersection(set(players[0].hand)))
+        players[2].cVals.append(cSouth)
+        cWest = len(set(westGuess).intersection(set(players[1].hand)))
+        players[3].cVals.append(cWest)
+        ns_score += cNorth + cSouth
+        ew_score += cEast + cWest
+        
+        round += 1
+    
+    return {"NS": ns_score, "EW": ew_score}
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Guess My Hand")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for card shuffling")
@@ -241,30 +297,53 @@ if __name__ == "__main__":
     parser.add_argument('--ewStrategy', type=int, choices=range(0, 11), help='East-West Strategy (1-10)')
     parser.add_argument('--nsGuesses', type=int, choices=range(0, 11), help='North-South Guesses (1-10)')
     parser.add_argument('--ewGuesses', type=int, choices=range(0, 11), help='East-West Guesses (1-10)')
-
+    parser.add_argument('--nSims', type=int, help='Number of simulations to run without GUI')
     args = parser.parse_args()
+
     folder = "teams"
-    
+
     # Import strategies based on flag values
     if args.nsStrategy in range(0, 11):
         file_name = f"strategies_{args.nsStrategy}"
         class_name = "playing"
         NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+
     if args.ewStrategy in range(0, 11):
         file_name = f"strategies_{args.ewStrategy}"
         class_name = "playing"
         EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
         class_name = "guessing"
         NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
+
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
         class_name = "guessing"
         EastWestGuess = import_class_from_file(folder, file_name, class_name)
-    else:
-        print("Running default code...")
 
-    root = tk.Tk()
-    game = Game(root, seed=args.seed)
-    root.mainloop()
+    if args.nSims:
+        total_scores = {"NS": 0, "EW": 0}
+        for _ in tqdm(range(args.nSims)):
+            seed = random.randint(0, 10000) 
+            scores = run_game_without_gui(seed)
+            total_scores["NS"] += scores["NS"]
+            total_scores["EW"] += scores["EW"]
+        
+        avg_scores = {
+            "NS": total_scores["NS"] / args.nSims,
+            "EW": total_scores["EW"] / args.nSims
+        }
+        print(f"Average scores over {args.nSims} simulations:")
+        print(f"NS: {avg_scores['NS']:.2f}")
+        print(f"EW: {avg_scores['EW']:.2f}")
+    else:
+        print("Running GUI version...")
+        import tkinter as tk
+        root = tk.Tk()
+        game = Game(root, seed=args.seed)
+        root.mainloop()
+
+
+
