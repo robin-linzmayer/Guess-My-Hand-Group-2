@@ -94,6 +94,5 @@ def guessing(player, cards, round):
     # Partner player's exposed card is used as an upper bound for values to guess from.
     guesses = use_max_value_index(exposed_card, guess_deck, round)
 
-    # Todo don't duplicate guesses (keep a history of guesses)
     print(player.cVals, sum(player.cVals))
     return guesses
