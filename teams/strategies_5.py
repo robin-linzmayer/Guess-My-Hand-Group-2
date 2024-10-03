@@ -21,6 +21,7 @@ guesses = defaultdict(list)
 
 
 def guessing(player, cards, round):
+    print(player.name, player.cVals)
     cp = {val: 1 / 52 for val in range(52)}
 
     for held_card in player.hand:
@@ -46,7 +47,7 @@ def guessing(player, cards, round):
                     del cp[key]
 
     for val in cp.keys():
-        cp[val] = 1 / len(cp)
+        cp[val] = (13 - round) / len(cp)
 
     update_probabilities_with_guesses(player, cp, round)
 
@@ -58,7 +59,11 @@ def guessing(player, cards, round):
     for card in cards:
         if card_to_val(card) in selected_vals:
             selected.append(card)
-    # print(selected_vals, cp)
+    # print(selected_vals, len(cp))
+    # for k in cp:
+    #     print(k, ":", cp[k])
+    # print(13 - round, sum(cp.values()))
+    print("\n\n")
     return selected
 
 
@@ -81,22 +86,33 @@ def update_probabilities_with_guesses(player, cp, round):
             elif card_val not in cp:
                 denominator -= 1
 
+        # print("Prob: ", numerator, denominator, guess_set)
         if denominator > 0:
             remaining_prob = numerator / denominator
             for card_val in guess_set:
                 if card_val in cp:
-                    cp[card_val] = remaining_prob
+                    if numerator <= 0:
+                        del cp[card_val]
+                    else:
+                        cp[card_val] *= remaining_prob
 
         unguessed_cards = set()
         for card_val in cp:
             if card_val not in guess_set:
                 unguessed_cards.add(card_val)
 
+        # print("Unguessed", unguessed_cards)
+        # print(len(unguessed_cards), len(guess_set), len(cp))
+
         if len(unguessed_cards) > 0:
             missed_guesses = len(guess_set) - player.cVals[past_round]
             remaining_prob = min(missed_guesses / len(unguessed_cards), 1)
+            # print(missed_guesses, len(unguessed_cards))
             for card_val in unguessed_cards:
-                cp[card_val] = max(cp[card_val], remaining_prob)
+                if missed_guesses <= 0:
+                    del cp[card_val]
+                else:
+                    cp[card_val] *= remaining_prob
 
 
 def partner(name):
