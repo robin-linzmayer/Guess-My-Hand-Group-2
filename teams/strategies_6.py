@@ -1,83 +1,134 @@
 import random
+import time
+from CardGame import Card, Deck, Player
+
+random_seed = 11024891
 
 def playing(player, deck):
     """
-    This strategy discards cards from the suit the player has the fewest cards in.
+    Playing min/max boundaries strategy.
     
-    Parameters:
-    player (Player): The current player object.
-    deck (Deck): The current deck object.
-
-    Returns:
-    int: The index of the card to be played.
+    Returns an integer representing the index of the card in the player's hand to play.
     """
     if not player.hand:
         return None
-    
-    # Create a count of cards per suit in the player's hand
-    suit_count = {suit: 0 for suit in deck.suits}
-    for card in player.hand:
-        suit_count[card.suit] += 1
 
-    # Find the suit with the fewest cards
-    weakest_suit = min(suit_count, key=suit_count.get)
+    ctuples = get_ctuple_deck_of_cards()
+    ctuples_to_indices = create_ctuple_to_index_mapping(random_seed, ctuples)
+    turn = 14 - len(player.hand)
+    ctuples_in_hand = get_card_tuples(player.hand)
 
-    # Select a card from the weakest suit to discard
-    weakest_suit_cards = [card for card in player.hand if card.suit == weakest_suit]
+    if turn % 2 == 1:
+        # on odd turns, expose the card with the highest index value
+        bound_card = max(ctuples_in_hand, key=lambda card: ctuples_to_indices[card])
+    else:
+        # on even turns, expose the card with the lowest index value
+        bound_card = min(ctuples_in_hand, key=lambda card: ctuples_to_indices[card])
 
-    if weakest_suit_cards:
-        # Play the first card of the weakest suit
-        card_to_play = weakest_suit_cards[0]
-        return player.hand.index(card_to_play)
-
-    # Fallback: If no card from the weakest suit (shouldn't happen normally)
-    return random.randint(0, len(player.hand) - 1)
+    return ctuples_in_hand.index(bound_card)
 
 def guessing(player, cards, round):
     """
-    This guessing strategy guesses unexposed cards from suits the player's partner has not discarded,
-    with a reduced probability of choosing cards from suits that have been discarded more often.
-
-    Parameters:
-    player (Player): The current player object.
-    cards (list): A list of all possible cards (usually the full deck or a subset).
-    round (int): The current round of the game (used to calculate how many cards to guess).
-
-    Returns:
-    list: A list of cards that are guessed to be in the partner's hand.
+    Returns a list of n Card objects to guess partner's hand.
     """
-    # Get the number of cards to guess
-    num_cards_to_guess = 13 - round
+    card_probs_by_index = {index: 1/52 for index in range(1, 53)}
+    partner = get_partner(player.name)
 
-    # Identify the player's partner based on seating
-    if player.name == "North":
-        partner_discarded = player.exposed_cards["South"]
-    elif player.name == "South":
-        partner_discarded = player.exposed_cards["North"]
-    elif player.name == "East":
-        partner_discarded = player.exposed_cards["West"]
-    else:  # player.name == "West"
-        partner_discarded = player.exposed_cards["East"]
+    ctuples = get_ctuple_deck_of_cards()
+    ctuples_to_indices, indices_to_ctuples = create_ctuple_to_index_mapping(random_seed, ctuples, True)
+    ctuples_to_cards = map_ctuples_to_cards(cards)
 
-    # Count how many times the partner has discarded cards from each suit
-    discard_count = {suit: 0 for suit in ["Hearts", "Diamonds", "Clubs", "Spades"]}
-    for card in partner_discarded:
-        discard_count[card.suit] += 1
+    ctuples_in_hand = get_card_tuples(player.hand)
+    ctuples_played = get_card_tuples(player.played_cards)
+    all_ctuples_exposed = []
+    partner_ctuples_exposed = []
+    for player_name, cards in player.exposed_cards.items():
+        if player_name == partner:
+            partner_ctuples_exposed += get_card_tuples(cards)
+       
+        all_ctuples_exposed += get_card_tuples(cards)
+    
+    # Delete cards of your own
+    for own_card in list(set(ctuples_in_hand) | set(ctuples_played)):
+        del card_probs_by_index[ctuples_to_indices[own_card]]
+    
+    # Delete cards which have been previously exposed
+    for exposed_card in all_ctuples_exposed:
+        del card_probs_by_index[ctuples_to_indices[exposed_card]]
 
-    # Find the unexposed cards in the full list (cards that are not in any player's exposed cards)
-    all_exposed_cards = set(player.exposed_cards["North"] + 
-                            player.exposed_cards["East"] + 
-                            player.exposed_cards["South"] + 
-                            player.exposed_cards["West"])
+    # Delete cards based on partner's min/max boundary information
+    for i in range(len(partner_ctuples_exposed)):
+        bound = ctuples_to_indices[partner_ctuples_exposed[i]]
+        if (i + 1) % 2 == 1:
+            indices_to_delete = [index for index in card_probs_by_index if index > bound]
+        else:
+            indices_to_delete = [index for index in card_probs_by_index if index < bound]
+        
+        for index in indices_to_delete:
+            del card_probs_by_index[index]
 
-    remaining_cards = [card for card in cards if card not in all_exposed_cards]
+    # Update card probabilities based on previous guesses
+    # COMPLETE THIS
 
-    # Assign weights inversely proportional to the number of discards in each suit
-    max_discard_count = max(discard_count.values()) + 1  # Adding 1 to avoid division by zero
-    card_weights = [max_discard_count - discard_count[card.suit] for card in remaining_cards]
+    # Determine your guesses by finding n cards with highest probabilities
+    n = 13 - round
+    sorted_card_probs_by_index = sorted(card_probs_by_index, key=card_probs_by_index.get, reverse=True)
+    top_n_card_prob_indices = sorted_card_probs_by_index[:n]
+    random.shuffle(top_n_card_prob_indices)
 
-    # Use weighted sampling without repetition
-    guessed_cards = random.choices(remaining_cards, weights=card_weights, k=num_cards_to_guess)
+    card_guesses = []
+    for index in top_n_card_prob_indices:
+        card_guesses.append(ctuples_to_cards[indices_to_ctuples[index]])
 
-    # Ensure guessed_cards has unique entries (since random.choices could allow duplicates)
-    return list(set(guessed_cards))
+    return card_guesses
+
+def create_ctuple_to_index_mapping(seed, ctuples, createReverseMap=False):
+    """
+    Method which maps a card tuple (value, suit) to a random index between 1-52.
+    """
+    random.seed(seed)
+    indices = random.sample(range(1, 53), 52)
+
+    ctuples_to_indices = {ctuple: index for ctuple, index in zip(ctuples, indices)}
+    
+    if createReverseMap:
+        indices_to_ctuples = {index: card for card, index in ctuples_to_indices.items()}
+        return ctuples_to_indices, indices_to_ctuples
+    
+    return ctuples_to_indices
+
+def get_ctuple_deck_of_cards():
+    suits = ["Hearts", "Diamonds", "Clubs", "Spades"] 
+    values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+    
+    return [(value, suit) for value in values for suit in suits]
+
+def map_ctuples_to_cards(cards):
+    """
+    Method which maps a card tuple (value, suit) to its corresponding Card object.
+    """
+    ctuples_to_cards = {}
+    for card in cards:
+            ctuples_to_cards[(card.value, card.suit)] = card
+    
+    return ctuples_to_cards
+
+def get_card_tuples(cards):
+    """
+    Method which returns a list of card tuple (value, suit) from a list of Card objects.
+    """
+    card_tuple_list = []
+    for card in cards:
+        card_tuple_list.append((card.value, card.suit))
+    
+    return card_tuple_list
+
+def get_partner(my_name):
+    if my_name == "North":
+        return "South"
+    elif my_name == "East":
+        return "West"
+    elif my_name == "South":
+        return "North"
+    elif my_name == "West":
+        return "East"
