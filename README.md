@@ -33,7 +33,7 @@ pip install tk
 
 ## Usage
 
-To view all options use python Guess-my-Hand-GUI.py -h. Apart from seed, the other flags will be used for competition among different teams.
+To view all options use python Guess-my-Hand.py -h. Apart from seed, the other flags will be used for competition among different teams.
 ```bash
 python Guess-my-Hand.py  [--seed] 
 ```
