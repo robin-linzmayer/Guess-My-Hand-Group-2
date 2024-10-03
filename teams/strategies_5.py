@@ -54,12 +54,11 @@ def guessing(player, cards, round):
         : 13 - round
     ]
 
-    guesses[player.name].append(selected_vals)
-
     selected = []
     for card in cards:
         if card_to_val(card) in selected_vals:
             selected.append(card)
+    # print(selected_vals, cp)
     return selected
 
 
@@ -70,7 +69,8 @@ def update_probabilities_with_guesses(player, cp, round):
     partner_cards = {
         card_to_val(card) for card in player.exposed_cards[partner(player.name)]
     }
-    for past_round, guess_set in enumerate(guesses[player.name]):
+    for past_round, guess_set in enumerate(player.guesses):
+        guess_set = [card_to_val(card) for card in guess_set]
         numerator = player.cVals[past_round]
         denominator = len(guess_set)
 
