@@ -100,7 +100,7 @@ def guessing(player, cards, round):
     np.random.shuffle(shuffled_cards)
 
     for c in shuffled_cards:
-        if str(c) in [str(c) for c in played_cards]:
+        if str(c) in [str(c) for c in played_cards + player.hand]:
             shuffled_cards.remove(c)
 
     combination = shuffled_cards[: 13 - len(player.played_cards)]
