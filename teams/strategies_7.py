@@ -4,15 +4,10 @@ from CardGame import Card, Deck, Player
 
 # G7 is the best
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 flag = 0
 card_probability = {}   # dictionary to store the probability of each card in the deck
 for i in range(2, 15):
     card_probability[i] = 1 / 13  # Initialize each card's probability
-=======
-=======
->>>>>>> 66d82f1 (Added c based updates)
 
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
@@ -26,10 +21,6 @@ NUM_TO_CARD = {
 }
 
 REV_CARD_TO_NUM = {value:key for key, value in NUM_TO_CARD.items()}
-<<<<<<< HEAD
->>>>>>> 2b381cd (Probability logic complete, seems to not work because of bad object implementation in the game)
-=======
-=======
 # Aaaumptions:
 
 # guessed_cards is a dict mapping turn number/round number -> player -> list of guessed cards that turn
@@ -66,8 +57,6 @@ def normalize(probability_dict):
     if total_prob > 0:
         for card in probability_dict:
             probability_dict[card] /= total_prob
->>>>>>> 3ae8532 (Added c based updates)
->>>>>>> 66d82f1 (Added c based updates)
 
 def playing(player, deck):
 
@@ -114,7 +103,6 @@ def max_first(player, deck):
     
     return max_index
 
-<<<<<<< HEAD
 
 def min_first(player, deck):
     """
@@ -170,7 +158,6 @@ def update_card_probablities(player, cards, round):
 
     for key in card_probability:
         card_probability[key] = 1 / 13
-=======
 def normalize_probabilities():
     total = sum(CARD_PROBABILITIES.values())
     if total > 0:
@@ -210,4 +197,3 @@ def guessing(player, cards, round):
     card_choices_obj = [Card(card[0], card[1]) for card in card_choices]
     return card_choices_obj
     return random.sample(cards, 13 - round)
->>>>>>> 2b381cd (Probability logic complete, seems to not work because of bad object implementation in the game)
