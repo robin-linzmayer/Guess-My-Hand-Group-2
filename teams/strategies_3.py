@@ -2,38 +2,47 @@ import random
 import numpy as np
 from CardGame import Card, Deck, Player
 
+ALL_SUITS = ["Hearts", "Diamonds", "Clubs", "Spades"]
+ALL_VALUES = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+CARD_VALUE = {
+    "A": 1,
+    "J": 11,
+    "Q": 12,
+    "K": 13,
+}
+
+def get_seed(card: Card):
+    return int(CARD_VALUE.get(card.value, card.value)) + 13 * (
+        list(card.map.keys()).index(card.suit)
+    )
+
+def get_possible_cards():
+    possible_cards = []
+    for card in [Card(suit, value) for suit in ALL_SUITS for value in ALL_VALUES]:
+        if str(card) not in [str(c) for c in possible_cards]:
+            possible_cards.append(card)
+    
+    return possible_cards
+
+
 
 def playing(player, deck):
     """
-    Max First strategy
+    Player 3 strategy
     """
     if not player.hand:
         return None
 
     played_cards = sum(list(player.exposed_cards.values()), [])
-    possible_cards = []
+    possible_cards = get_possible_cards()
 
-    all_suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
-    all_values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-
-    for card in [Card(suit, value) for suit in all_suits for value in all_values]:
-        if str(card) not in [str(c) for c in possible_cards]:
-            possible_cards.append(card)
 
     card_to_play = None
     highest_score = 0
 
-    card_value = {
-        "A": 1,
-        "J": 11,
-        "Q": 12,
-        "K": 13,
-    }
-
     for card in player.hand:
-        seed = int(card_value.get(card.value, card.value)) + 13 * (
-            list(card.map.keys()).index(card.suit)
-        )
+        seed = get_seed(card)
+        # print(f"P-{player.name} seed: {seed}")
         np.random.seed(seed)
 
         shuffled_cards = possible_cards.copy()
@@ -53,8 +62,12 @@ def playing(player, deck):
             highest_score = score
             card_to_play = card
 
+    # print("C: {}")
+
     if card_to_play:
         return player.hand.index(card_to_play)
+
+    # raise Exception("This should never happen")
 
     return 0
 
@@ -75,26 +88,10 @@ def guessing(player, cards, round):
     if not teammate_last_card:
         return random.sample(cards, 13 - round)
 
-    card_value = {
-        "A": 1,
-        "J": 11,
-        "Q": 12,
-        "K": 13,
-    }
-
     played_cards = sum(list(player.exposed_cards.values()), [])
-    possible_cards = []
+    possible_cards = get_possible_cards()
 
-    all_suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
-    all_values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-
-    for card in [Card(suit, value) for suit in all_suits for value in all_values]:
-        if str(card) not in [str(c) for c in possible_cards]:
-            possible_cards.append(card)
-
-    seed = int(
-        card_value.get(teammate_last_card.value, teammate_last_card.value)
-    ) + 13 * (list(teammate_last_card.map.keys()).index(teammate_last_card.suit))
+    seed = get_seed(teammate_last_card)
     np.random.seed(seed)
     shuffled_cards = possible_cards.copy()
     np.random.shuffle(shuffled_cards)
