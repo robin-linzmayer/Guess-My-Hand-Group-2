@@ -14,6 +14,21 @@ class Card:
     def __repr__(self):
         return str(self)
 
+    # Override __eq__ for equality comparison
+    # allows us to use
+    #   `card in cards`
+    # instead of
+    #   `str(card) in [str(c) for c in cards]`
+    def __eq__(self, other):
+        if isinstance(other, Card):
+            return self.suit == other.suit and self.value == other.value
+        return False
+
+    # Override __hash__ for hashability 
+    # required for user defined __eq__
+    def __hash__(self):
+        return hash((self.suit, self.value)) 
+
 class Deck:
     def __init__(self, seed=42):
         self.suits = ["Hearts", "Diamonds", "Clubs", "Spades"] 
