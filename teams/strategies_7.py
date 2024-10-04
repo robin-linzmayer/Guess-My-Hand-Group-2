@@ -1,3 +1,4 @@
+import copy
 import random
 import numpy as np
 from CardGame import Card, Deck, Player
@@ -12,6 +13,8 @@ for i in range(2, 15):
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 NUM_CARDS = len(SUITS) * len(VALUES)
+
+# This is deprecated but for the sake of structure i'll leave it
 CARD_PROBABILITIES = {num:1/39 for num in range(NUM_CARDS)}
 
 # Create a dictionary that maps 0-51 to (value, suit)
@@ -161,37 +164,33 @@ def update_card_probablities(player, cards, round):
 def normalize_probabilities():
     total = sum(CARD_PROBABILITIES.values())
     if total > 0:
-        for card in CARD_PROBABILITIES:
-            CARD_PROBABILITIES[card] /= total
+        for card in prob_dict:
+            prob_dict[card] /= total
     else:
         # This is after all the cards have been played - so no exception
-        CARD_PROBABILITIES[0] = 1
+        prob_dict[0] = 1
+    return prob_dict
 
-def zero_probabilities(cards):
+def zero_probabilities(prob_dict, cards):
     for card in cards:
         suit = card.suit
         val = card.value
         num = REV_CARD_TO_NUM[(suit, val)]
-        CARD_PROBABILITIES[num] = 0.0
-    normalize_probabilities()
+        prob_dict[num] = 0.0
+    return normalize_probabilities(prob_dict)
 
 
 def guessing(player, cards, round):
-    if round == 1:
-        global CARD_PROBABILITIES
-        CARD_PROBABILITIES = {num:1/39 for num in range(NUM_CARDS)}
-        zero_probabilities(player.hand)
-        
-    normalize_probabilities()
-    
+    card_probs = {num:1/39 for num in range(NUM_CARDS)}
+    card_probs = zero_probabilities(card_probs, player.hand)
     exposed_cards = [i for j in list(player.exposed_cards.values()) for i in j]
-    zero_probabilities(exposed_cards)
-    zero_probabilities(player.played_cards)
+    card_probs = zero_probabilities(card_probs, exposed_cards)
+    card_probs = zero_probabilities(card_probs, player.played_cards)
 
     choice = np.random.choice(
-        list(CARD_PROBABILITIES.keys()),
+        list(card_probs.keys()),
         13 - round,
-        p=list(CARD_PROBABILITIES.values()),
+        p=list(card_probs.values()),
         replace=False)
     card_choices = [NUM_TO_CARD[card] for card in choice]
     card_choices_obj = [Card(card[0], card[1]) for card in card_choices]
