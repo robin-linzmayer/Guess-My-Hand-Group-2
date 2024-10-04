@@ -7,6 +7,7 @@ from CardGame import Card, Deck, Player
 
 # G7 is the best
 
+<<<<<<< HEAD
 flag = 0
 card_probability = {}   # dictionary to store the probability of each card in the deck
 for i in range(2, 15):
@@ -71,6 +72,8 @@ flag = 0
 #Stores guesses by player and round 
 player_guesses = {}
 <<<<<<< HEAD
+=======
+>>>>>>> 5acd246 (Fixed conflicts)
 
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
@@ -83,12 +86,7 @@ NUM_TO_CARD = {
     for i in range(NUM_CARDS)
 }
 
-REV_CARD_TO_NUM = {value:key for key, value in NUM_TO_CARD.items()}
-=======
-# Aaaumptions:
-
-# guessed_cards is a dict mapping turn number/round number -> player -> list of guessed cards that turn
-# probability dict map indexed based on certain ordering -> probability of it being in your partners hand. 
+REV_CARD_TO_NUM = {value:key for key, value in NUM_TO_CARD.items()} 
 
 def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correct_answers):
     """
@@ -121,7 +119,6 @@ def normalize(probability_dict):
     if total_prob > 0:
         for card in probability_dict:
             probability_dict[card] /= total_prob
->>>>>>> 3ae8532 (Added c based updates)
 
 
 def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correct_answers):
