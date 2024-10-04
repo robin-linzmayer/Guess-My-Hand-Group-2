@@ -33,7 +33,7 @@ def get_possible_cards():
     return possible_cards
 
 
-def find_best_card(player: Player) -> Card:
+def card_with_best_seed(player: Player) -> Card:
     played_cards = sum(list(player.exposed_cards.values()), [])
     possible_cards = get_possible_cards()
     highest_score = 0
@@ -187,15 +187,11 @@ def playing(player, deck):
     """
     Player 3 strategy
     """
-    if player.name == "North":
-        pass
-    else: 
-        print(f"{player.name}: {player.hand}")
 
     if not player.hand:
         return None
 
-    card_to_play = find_best_card(player)
+    card_to_play = card_with_best_seed(player)
 
     return player.hand.index(card_to_play)
 
@@ -205,9 +201,6 @@ def guessing(player, cards, round):
     """
     Player 3 Guess
     """
-
-    if player.name == "North":
-        pass
 
     teammate_last_card = get_teammate_last_card(player)
 
