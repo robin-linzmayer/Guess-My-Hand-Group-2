@@ -10,6 +10,9 @@ class Card:
 
     def __str__(self):
         return f"{self.value} of {self.suit}"
+    
+    def __repr__(self):
+        return str(self)
 
 class Deck:
     def __init__(self, seed=42):
@@ -50,3 +53,9 @@ class Player:
 
     def update_exposed_cards(self, player_name, card):
         self.exposed_cards[player_name].append(card)
+
+    def __str__(self) -> str:
+        return f"Player({self.name})"
+    
+    def __repr__(self) -> str:
+        return str(self)
