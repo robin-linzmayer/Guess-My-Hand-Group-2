@@ -88,6 +88,14 @@ def guessing(player, cards, round):
     """
     print(" ")
     print(f"Player: {player.name}")
+    
+    ############### Tom (10/3):
+    if round == 1: # The initial round
+        create_card_dictionary(cards) # Initialize the dictionary
+        for idx, value in guesser_card_dict.items():
+            print(f"Index {idx}: {value[0]}, numerator={value[1]}, denominator={value[2]}, is_certain={value[3]}, is_in_partner_hand={value[4]}")
+    ###########################
+    
     guess_deck = get_guess_deck(player, cards)
     exposed_card = get_partner_exposed_card(player)
 
@@ -96,3 +104,38 @@ def guessing(player, cards, round):
 
     print(player.cVals, sum(player.cVals))
     return guesses
+
+
+################################################################################################################### Tom (10/3):
+guesser_card_dict = {}
+
+def hash_card_index(card):
+    """
+    This function maps cards to an index and scrambles the index.
+    """
+    suit_order = {"Hearts": 0, "Diamonds": 2, "Clubs": 1, "Spades": 3}
+    value_order = {"2": 7, "3": 10, "4": 4, "5": 5, "6": 11, "7": 3, "8": 2, "9": 13, "10": 6, "J": 1, "Q": 9, "K": 12, "A": 8}
+    
+    # Hash formula that combines suit and value in a less predictable way
+    suit = suit_order[card.suit]
+    value = value_order[card.value]
+    
+    index = suit * 13 + value
+    
+    return index
+
+def create_card_dictionary(deck):
+    """
+    This function takes in a deck of cards and fills in a dictionary where:
+    - Key: The scrambled index from hash_card_index
+    - Value: A list:
+    [card in Card, numerator in int, denominator in int, is_certain in boolean, is_in_partner_hand in bool2]    
+    """
+    counter=0
+    for card in deck:
+        index = hash_card_index(card)
+        guesser_card_dict[index] = [card, 1, 52, False, False]  # Initializing with 2 integers and 2 booleans
+        counter += 1
+    return 1
+##############################################################################################################
+
