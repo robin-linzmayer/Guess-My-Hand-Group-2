@@ -70,6 +70,7 @@ flag = 0
 
 #Stores guesses by player and round 
 player_guesses = {}
+<<<<<<< HEAD
 
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
@@ -83,6 +84,44 @@ NUM_TO_CARD = {
 }
 
 REV_CARD_TO_NUM = {value:key for key, value in NUM_TO_CARD.items()}
+=======
+# Aaaumptions:
+
+# guessed_cards is a dict mapping turn number/round number -> player -> list of guessed cards that turn
+# probability dict map indexed based on certain ordering -> probability of it being in your partners hand. 
+
+def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correct_answers):
+    """
+    Updates the probabilities for the cards in the guessed_cards list.
+
+    Args:
+        probability_dict (dict): A dictionary where keys are integers (0-51) representing cards
+                                and probabilities.
+        guessed_cards (list): A list of card indices representing the guessed cards.
+        
+    Returns:
+        None: The probability_dict is updated in-place.
+    """
+
+    perc_correct = correct_answers / len(guessed_cards)  # Factor to boost guessed cards
+    perc_wrong =  1 - perc_correct
+
+    for card in guessed_cards:
+            probability_dict[card] *= perc_correct
+
+    non_guessed_cards = [card for card in probability_dict if card not in guessed_cards]
+
+    for card in non_guessed_cards:
+        probability_dict[card] *= perc_wrong
+
+    normalize(probability_dict)
+
+def normalize(probability_dict):
+    total_prob = sum(probability_dict.values())
+    if total_prob > 0:
+        for card in probability_dict:
+            probability_dict[card] /= total_prob
+>>>>>>> 3ae8532 (Added c based updates)
 
 
 def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correct_answers):
