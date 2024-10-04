@@ -47,7 +47,6 @@ def playing(player, deck):
             card_to_play = card
 
     if card_to_play:
-        print(f"Highest score: {highest_score}")
         return player.hand.index(card_to_play)
 
     return 0
@@ -92,4 +91,9 @@ def guessing(player, cards, round):
     np.random.seed(seed)
     combination = np.random.choice(possible_cards, (13 - round), replace=False)
 
-    return combination
+    cards_to_guess = []
+    for c in cards:
+        if str(c) in [str(c) for c in combination]:
+            cards_to_guess.append(c)
+
+    return cards_to_guess
