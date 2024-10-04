@@ -39,6 +39,10 @@ def playing(player, deck):
         shuffled_cards = possible_cards.copy()
         np.random.shuffle(shuffled_cards)
 
+        for c in shuffled_cards:
+            if str(c) in [str(c) for c in played_cards]:
+                shuffled_cards.remove(c)
+
         combination = shuffled_cards[: 13 - len(player.played_cards)]
 
         score = 0
@@ -94,6 +98,11 @@ def guessing(player, cards, round):
     np.random.seed(seed)
     shuffled_cards = possible_cards.copy()
     np.random.shuffle(shuffled_cards)
+
+    for c in shuffled_cards:
+        if str(c) in [str(c) for c in played_cards]:
+            shuffled_cards.remove(c)
+
     combination = shuffled_cards[: 13 - len(player.played_cards)]
 
     cards_to_guess = []
