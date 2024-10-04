@@ -283,6 +283,7 @@ def run_game_without_gui(seed):
         players[2].cVals.append(cSouth)
         cWest = len(set(westGuess).intersection(set(players[1].hand)))
         players[3].cVals.append(cWest)
+        print(f"round: {round} N-{cNorth} S-{cSouth}")
         ns_score += cNorth + cSouth
         ew_score += cEast + cWest
         
@@ -325,6 +326,8 @@ if __name__ == "__main__":
 
     if args.nSims:
         total_scores = {"NS": 0, "EW": 0}
+        # get consistent sequence of simulations given the seed
+        random.seed(args.seed)
         for _ in tqdm(range(args.nSims)):
             seed = random.randint(0, 10000) 
             scores = run_game_without_gui(seed)
