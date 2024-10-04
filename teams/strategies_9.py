@@ -1,4 +1,5 @@
 import random
+from collections import defaultdict, deque
 
 """
 PLAYER CLASS VARIABLES
@@ -52,13 +53,17 @@ teammate = {
     "West" : "East",
 }
 
+teammate_max = ''
+
 # Use to get anti-suit
-anti_suit = {
-    "Hearts" : "Diamonds",
-    "Diamonds" : "Hearts",
-    "Spades" : "Clubs",
-    "Clubs" : "Spades",
-}
+# anti_suits  = {
+#     "Spades" : "Diamonds",
+#     "Clubs" : "Spades",
+#     "Hearts" : "Clubs",
+#     "Diamonds" : "Hearts",
+# }
+
+# anti_suit_guess = deque(['Diamonds', 'Hearts,', 'Clubs', 'Spades'])
 
 def playing(player, deck):
     """
@@ -67,15 +72,70 @@ def playing(player, deck):
     if not player.hand:
         return None
     
-    return 0
+    hand = defaultdict(list)
+    for card in player.hand:
+        hand[card.suit].append(card.value)
+
+    max_suit = max(hand, key=lambda key : len(hand[key]))
+    # print(max_suit, hand[max_suit])
+
+    # improve to min-max
+    if len(hand[max_suit]) == len(player.hand):
+        play_value = min(hand[max_suit])
+        play_card = [idx for idx in range(len(player.hand)) if player.hand[idx].value == play_value and player.hand[idx].suit == max_suit][0]
+        return play_card
+
+    anti_suits = deque(['Spades', 'Clubs', 'Hearts', 'Diamonds'])
+    # print(abs(anti_suits.index(max_suit) - len(anti_suits)))
+    # print(anti_suits)
+    anti_suits.rotate(abs(anti_suits.index(max_suit) - (len(anti_suits) - 1)))
+    # print(anti_suits)
+    anti_suit = anti_suits[0]
+    # print(max_suit, anti_suit)
+
+    play_card = -1
+    while play_card < 0:
+        if hand[anti_suit]:
+            play_value = min(hand[anti_suit])
+            play_card = [idx for idx in range(len(player.hand)) if player.hand[idx].value == play_value and player.hand[idx].suit == anti_suit][0]
+            # print(play_card)
+        else:
+            anti_suits.rotate(-1)
+            anti_suit = anti_suits[0]
+
+    return play_card
 
 def guessing(player, cards, round):
     """
     Guesses the Anti-Suit based on teammate's exposed card
     """
     num_of_guesses = 13 - round
-    teammate_suit = player.exposed_cards[teammate[player.name]][-1].suit
-    potential_guesses = [card for card in cards if card.suit == anti_suit[teammate_suit]] # All 13 cards of the teammate_suit
+    teammate_suit = player.exposed_cards[teammate[player.name]][0].suit
+    anti_suits = deque(['Diamonds', 'Hearts', 'Clubs', 'Spades'])
+    anti_suits.rotate(abs(anti_suits.index(teammate_suit) - (len(anti_suits) - 1)))
+    # if not player.cVals:
+    #     anti_suit = anti_suits[0]
+    #     teammate_max = anti_suit
+    # elif player.cVals[-1] == 0:
+    #     anti_suits.rotate(round - 1)
+    #     anti_suit = anti_suits[0]
+    #     teammate_max = anti_suit
+    # else:
+    #     anti_suit = anti_suits[0]
+    #     teammate_max = anti_suit
+    if player.cVals and player.cVals[-1] == 0:
+        anti_suits.rotate(round - 1)
+        anti_suit = anti_suits[0]
+        teammate_max = anti_suit
+    else:
+        anti_suit = anti_suits[0]
+        teammate_max = anti_suit
+
+
+
+        
+    # print(teammate_suit, anti_suit)
+    potential_guesses = [card for card in cards if card.suit == teammate_max] # All 13 cards of the teammate_suit
     potential_guesses.sort(key=lambda x:card_val[x.value])
 
     # val_check_arr = []
