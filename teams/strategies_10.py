@@ -34,6 +34,11 @@ def guessing(player, cards, round):
     # Update available guesses and probabilities
     update_available_guesses(player, available_guesses)
     update_probabilities(player, round, available_guesses, probabilities)
+    
+    # Update probabilities based on partner cards
+    # [PROBABILITY NOT THE SPIRIT OF THE GAME :)]
+    get_partner_cards(player, round, probabilities)
+    probabilities[~available_guesses] = 0
 
     # Debug print
     # print(f'probabilities: {probabilities}')
@@ -78,6 +83,22 @@ def update_probabilities(player, round, available_guesses, probabilities):
                 probabilities[card_idx] = accuracy
 
 
+def get_partner_cards(player, round, probabilities):
+    """
+    Update probabilities based on partner cards
+    [THIS IS PROBABILITY NOT THE SPIRIT OF THE GAME :)]
+    """
+    if np.sum(partner_cards) > 0:
+        probabilities[~partner_cards] = 0
+        probabilities[partner_cards] = 1
+
+    for my_card in player.hand:
+        card_idx = convert_card_to_index(my_card)
+        partner_cards[card_idx] = True
+
+    print(f'partner_cards: {partner_cards}')
+
+
 def convert_card_to_index(card):
     """
     Convert Card object to an index ranking by value then suit
@@ -90,7 +111,7 @@ def convert_card_to_index(card):
 """
 Global variables
 """
-unexposed_cards = np.ones(52, dtype=bool)
+partner_cards = np.zeros(52, dtype=bool)
 
 suit_to_idx = {"Clubs": 0, "Diamonds": 1, "Hearts": 2, "Spades": 3}
 value_to_idx = {
