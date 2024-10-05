@@ -104,6 +104,7 @@ def playing(player: Player, deck: Deck):
 
 hash_index_to_search = {}
 hash_map = {}
+card_probabilities = {}
 def guessing(player, cards, round):
     global hash_map
     global hash_index_to_search
@@ -128,8 +129,31 @@ def guessing(player, cards, round):
         chosen = random.choice(options)
         return list(set(chosen) - set(teamMatesPlayedCards))
     else:
-        viableCardsMinusTeamMatePlayed = list(set(get_viable_cards(cards, player)) - set(teamMatesPlayedCards))
-        return random.sample(viableCardsMinusTeamMatePlayed, 13 - round)
+        if round == 1:
+            init_card_probs(card_probabilities, player)
+        
+        update_card_probs(player, round)
+        # return random.sample(viableCardsMinusTeamMatePlayed, 13 - round)
+    
+def init_card_probs(card_probabilities, player):
+    card_probabilities[player.name] = {}
+    for i in ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']:
+        for j in ['H', 'C', 'D', 'S']:
+            card_probabilities[player.name][f'{i}{j}'] = 1 / 52
+
+def update_card_probs(cards, card_probabilities, player):
+    # remove the cards that were played
+    for card in set(cards) - set(get_viable_cards(cards, player)):
+        del card_probabilities[player.name][f'{card.value}{card.suit[0]}']
+
+    # remove partner's card
+    partner_card = get_team_mates_exposed_cards(player)[-1]
+    del card_probabilities[player.name][f'{partner_card.value}{partner_card.suit[0]}']
+
+    # update probabilities
+    for card in get_viable_cards(cards, player):
+        if card_probabilities[player.name][f'{card.value}{card.suit[0]}'][1] == 1 / (3 + len(card_probabilities[player.name])):
+            card_probabilities[player.name][f'{card.value}{card.suit[0]}'][1] = 1 / len(card_probabilities[player.name])
 
 def get_team_mates_exposed_cards(player) -> list:
     if player.name == "East":
