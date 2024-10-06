@@ -309,6 +309,7 @@ if __name__ == "__main__":
         try:
             NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
         except:
+            print("North South Strategy import failed. Using the default strategy")
             pass
 
     if args.ewStrategy in range(0, 11):
@@ -317,6 +318,7 @@ if __name__ == "__main__":
         try:
             EastWestStrategy = import_class_from_file(folder, file_name, class_name)
         except:
+            print("East West Strategy import failed. Using the default strategy")
             pass
 
     if args.nsGuesses in range(0, 11):
@@ -325,6 +327,7 @@ if __name__ == "__main__":
         try:
             NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
         except:
+            print("North South Guesses import failed. Using the default strategy")
             pass
 
     if args.ewGuesses in range(0, 11):
@@ -333,6 +336,7 @@ if __name__ == "__main__":
         try:
             EastWestGuess = import_class_from_file(folder, file_name, class_name)
         except:
+            print("East West guesses import failed. Using the default strategy")
             pass
 
     if args.nSims:
