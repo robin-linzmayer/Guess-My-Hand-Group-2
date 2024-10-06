@@ -1,16 +1,15 @@
-import copy
 import random
 import numpy as np
 from CardGame import Card, Deck, Player
 
 # G7 is the best
 
+#Stores guesses by player and round 
+player_guesses = {}
 
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 NUM_CARDS = len(SUITS) * len(VALUES)
-
-# This is deprecated but for the sake of structure i'll leave it
 CARD_PROBABILITIES = {num:1/39 for num in range(NUM_CARDS)}
 
 # Create a dictionary that maps 0-51 to (value, suit)
@@ -19,7 +18,8 @@ NUM_TO_CARD = {
     for i in range(NUM_CARDS)
 }
 
-REV_CARD_TO_NUM = {value:key for key, value in NUM_TO_CARD.items()} 
+REV_CARD_TO_NUM = {value:key for key, value in NUM_TO_CARD.items()}
+
 
 def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correct_answers):
     """
@@ -33,10 +33,12 @@ def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correc
     Returns:
         None: The probability_dict is updated in-place.
     """
+    #print(f"Number of correct answers {correct_answers}")
+    #print(correct_answers)
 
     perc_correct = correct_answers / len(guessed_cards)  # Factor to boost guessed cards
     perc_wrong =  1 - perc_correct
-
+    #print(f"Perc of correct answers {perc_correct}")
     for card in guessed_cards:
             probability_dict[card] *= perc_correct
 
@@ -45,7 +47,8 @@ def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correc
     for card in non_guessed_cards:
         probability_dict[card] *= perc_wrong
 
-    normalize(probability_dict)
+    normalize_probabilities()
+    print(probability_dict)
 
 def normalize(probability_dict):
     total_prob = sum(probability_dict.values())
@@ -64,9 +67,6 @@ def playing(player, deck):
     max_index = 0
     max_value = -1
 
-    
-    
-
     for i, card in enumerate(player.hand):
         value = value_order.index(card.value)
         if value > max_value:
@@ -75,38 +75,58 @@ def playing(player, deck):
     
     return max_index
 
-def normalize_probabilities(prob_dict):
-    total = sum(prob_dict.values())
+def normalize_probabilities():
+    total = sum(CARD_PROBABILITIES.values())
     if total > 0:
-        for card in prob_dict:
-            prob_dict[card] /= total
+        for card in CARD_PROBABILITIES:
+            CARD_PROBABILITIES[card] /= total
     else:
         # This is after all the cards have been played - so no exception
-        prob_dict[0] = 1
-    return prob_dict
+        CARD_PROBABILITIES[0] = 1
 
-def zero_probabilities(prob_dict, cards):
+def zero_probabilities(cards):
     for card in cards:
         suit = card.suit
         val = card.value
         num = REV_CARD_TO_NUM[(suit, val)]
-        prob_dict[num] = 0.0
-    return normalize_probabilities(prob_dict)
+        CARD_PROBABILITIES[num] = 0.0
+    normalize_probabilities()
 
 
 def guessing(player, cards, round):
-    card_probs = {num:1/39 for num in range(NUM_CARDS)}
-    card_probs = zero_probabilities(card_probs, player.hand)
+    global player_guesses
+    if round == 1:
+        global CARD_PROBABILITIES
+        CARD_PROBABILITIES = {num:1/39 for num in range(NUM_CARDS)}
+        zero_probabilities(player.hand)
+        
+    normalize_probabilities()
     exposed_cards = [i for j in list(player.exposed_cards.values()) for i in j]
-    card_probs = zero_probabilities(card_probs, exposed_cards)
-    card_probs = zero_probabilities(card_probs, player.played_cards)
+    zero_probabilities(exposed_cards)
+    zero_probabilities(player.played_cards)
+
+    if round > 1:
+        print(f"After round {round}, number of cvals : {player.cVals}")
+    
+    if round > 1: # We have c values 
+        correct_answers = player.cVals[-1]
+        previous_guesses = player_guesses[player.name].get(round - 1, [])
+        print(correct_answers)
+        print(len(previous_guesses))
+        previous_guess_indices = [REV_CARD_TO_NUM[(card.suit, card.value)] for card in previous_guesses]
+        update_prob_based_on_correct_answers(CARD_PROBABILITIES, previous_guess_indices, correct_answers)
 
     choice = np.random.choice(
-        list(card_probs.keys()),
+        list(CARD_PROBABILITIES.keys()),
         13 - round,
-        p=list(card_probs.values()),
+        p=list(CARD_PROBABILITIES.values()),
         replace=False)
     card_choices = [NUM_TO_CARD[card] for card in choice]
     card_choices_obj = [Card(card[0], card[1]) for card in card_choices]
+
+    if player.name not in player_guesses:
+        player_guesses[player.name] = {}  # Initialize if not present
+
+    player_guesses[player.name][round] = card_choices_obj
+
     return card_choices_obj
-    return random.sample(cards, 13 - round)
