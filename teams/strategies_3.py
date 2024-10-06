@@ -21,7 +21,7 @@ TEAMMATE_NAME = {
 # determines for how many rounds a player should 
 # give the card with the best seed until they start
 # playing unlikely cards
-SEED_ROUNDS = 3
+SEED_ROUNDS = 2
 
 def get_seed(card: Card):
     return int(CARD_VALUE.get(card.value, card.value)) + 13 * (
@@ -68,7 +68,9 @@ def card_with_best_seed(player: Player) -> Card:
 
         score = 0
         for c in combination:
-            if c in player.hand:
+            # we don't get points for having a card in the permutation that
+            # we would play ~ 1pt / game optimization
+            if c in player.hand and c != card:
                 score += 1
         if score > highest_score:
             highest_score = score
