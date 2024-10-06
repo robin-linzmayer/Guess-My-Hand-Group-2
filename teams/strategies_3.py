@@ -11,13 +11,17 @@ CARD_VALUE = {
     "K": 13,
 }
 
-
 TEAMMATE_NAME = {
     "North": "South",
     "East": "West",
     "South": "North",
     "West": "East",
 }
+
+# determines for how many rounds a player should 
+# give the card with the best seed until they start
+# playing unlikely cards
+SEED_ROUNDS = 3
 
 def get_seed(card: Card):
     return int(CARD_VALUE.get(card.value, card.value)) + 13 * (
@@ -33,18 +37,28 @@ def get_possible_cards():
     return possible_cards
 
 
+def get_shuffle(card: Card) -> list[Card]:
+    """Returns an **unprocessed** shuffled deck based off a card's seed"""
+    possible_cards = get_possible_cards()
+    seed = get_seed(card)
+    np.random.seed(seed)
+
+    shuffled_cards = possible_cards.copy()
+    np.random.shuffle(shuffled_cards)
+
+    # TODO: process a shuffle here based off which cards have been played at this point
+    # useful for when the player wants to see the actual quality's 
+    # of a shuffle when choosing the unlikeliest card
+
+    return shuffled_cards
+
 def card_with_best_seed(player: Player) -> Card:
     played_cards = sum(list(player.exposed_cards.values()), [])
-    possible_cards = get_possible_cards()
     highest_score = 0
     card_to_play = None
 
     for card in player.hand:
-        seed = get_seed(card)
-        np.random.seed(seed)
-
-        shuffled_cards = possible_cards.copy()
-        np.random.shuffle(shuffled_cards)
+        shuffled_cards = get_shuffle(card)
 
         for c in shuffled_cards:
             if c in played_cards:
@@ -183,7 +197,26 @@ def add_likely_cards(player, combination, cards):
     return combination + likelies
 
 
-def playing(player, deck):
+def unlikeliest_card(player: Player, deck: Deck) -> Card:
+    # how many times have we shown each card
+    shown = dict()
+    for card in player.hand:
+        shown[card] = 0
+
+    for idx, played_card in enumerate(player.played_cards):
+        combination = get_shuffle(played_card)[: 12 - idx]
+
+        for card in combination:
+            if card in shown:
+                shown[card] += 1
+
+
+    # order the cards depedening on how often they showed up
+    unlikely_cards = sorted([(k, v) for k, v in shown.items()], key=lambda x: x[1])
+
+    return unlikely_cards[0][0]
+
+def playing(player: Player, deck: Deck):
     """
     Player 3 strategy
     """
@@ -191,7 +224,11 @@ def playing(player, deck):
     if not player.hand:
         return None
 
-    card_to_play = card_with_best_seed(player)
+    if len(player.guesses) < SEED_ROUNDS:
+        card_to_play = card_with_best_seed(player)
+    else:
+        # play the card my teammate is unlikeliest to guess
+        card_to_play = unlikeliest_card(player, deck)
 
     return player.hand.index(card_to_play)
 
@@ -202,13 +239,16 @@ def guessing(player, cards, round):
     Player 3 Guess
     """
 
-    teammate_last_card = get_teammate_last_card(player)
+    if len(player.guesses) < SEED_ROUNDS:
+        teammate_last_card = get_teammate_last_card(player)
 
-    shuffled_cards = get_teammate_shuffle(player, teammate_last_card)
+        shuffled_cards = get_teammate_shuffle(player, teammate_last_card)
 
-    combination = shuffled_cards[: 13 - len(player.played_cards)]
+        combination = shuffled_cards[: 13 - len(player.played_cards)]
 
-    combination = remove_impossible_cards(player, combination)
-    combination = add_likely_cards(player, combination, cards)
+        combination = remove_impossible_cards(player, combination)
+        combination = add_likely_cards(player, combination, cards)
+    else:
+        combination = add_likely_cards(player, [], cards)
 
     return combination
