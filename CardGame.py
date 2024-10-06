@@ -31,6 +31,7 @@ class Player:
         self.hand = []
         self.played_cards = []
         self.strategy = strategy
+        self.guesses = []
         self.exposed_cards = {"North": [], "East": [], "South": [], "West": []}
         self.cVals = []
 
