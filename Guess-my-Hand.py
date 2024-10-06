@@ -306,22 +306,34 @@ if __name__ == "__main__":
     if args.nsStrategy in range(0, 11):
         file_name = f"strategies_{args.nsStrategy}"
         class_name = "playing"
-        NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+        try:
+            NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+        except:
+            pass
 
     if args.ewStrategy in range(0, 11):
         file_name = f"strategies_{args.ewStrategy}"
         class_name = "playing"
-        EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+        try:
+            EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+        except:
+            pass
 
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
         class_name = "guessing"
-        NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
+        try:
+            NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
+        except:
+            pass
 
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
         class_name = "guessing"
-        EastWestGuess = import_class_from_file(folder, file_name, class_name)
+        try:
+            EastWestGuess = import_class_from_file(folder, file_name, class_name)
+        except:
+            pass
 
     if args.nSims:
         total_scores = {"NS": 0, "EW": 0}
