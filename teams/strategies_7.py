@@ -61,6 +61,11 @@ def normalize(probability_dict):
         for card in probability_dict:
             probability_dict[card] /= total_prob
 
+flag = 0
+# card_probability = {}   # dictionary to store the probability of each card in the deck
+# for i in range(2, 15):
+#     card_probability[i] = 1 / 13  # Initialize each card's probability
+
 def playing(player, deck):
 
     global flag
@@ -74,9 +79,6 @@ def playing(player, deck):
 
 def guessing(player, cards, round):
     return random.sample(cards, 13 - round)
-
-
-
 
 def max_first(player, deck):
     """
@@ -136,7 +138,7 @@ def min_first(player, deck):
     return min_index
 
 
-def update_card_probablities(player, cards, round):
+def update_card_probablities(player):
     """
     Update the probability of each card in the deck.
     """
