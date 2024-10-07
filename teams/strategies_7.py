@@ -5,8 +5,6 @@ import numpy as np
 
 # G7 is the best
 
-flag = 0
-
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 NUM_CARDS = len(SUITS) * len(VALUES)
@@ -66,8 +64,6 @@ def update_prob_based_on_correct_answers(probability_dict, guessed_cards, correc
     print(probability_dict)
 
 def playing(player, deck):
-
-    global flag
 
     turn = len(player.played_cards) + 1
 
