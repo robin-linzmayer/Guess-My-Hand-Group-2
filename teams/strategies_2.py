@@ -1,15 +1,19 @@
 import random
-from CardGame import Deck
 
-shuffled_card_dict = {}
+# Shared global variables
 PARTNERS = {
     'North': 'South',
     'East': 'West',
     'South': 'North',
     'West': 'East',
 }
+SUIT_ORDER = {"Hearts": 0, "Diamonds": 2, "Clubs": 1, "Spades": 3}
+VALUE_ORDER = {"2": 7, "3": 10, "4": 4, "5": 5, "6": 11, "7": 3, "8": 2, "9": 13, "10": 6, "J": 1, "Q": 9, "K": 12,
+               "A": 8}
 
-previous_guesses = []  # Global variable to keep track of previous guesses
+# Global variables that will be split on player.name
+deck_state_dict = {}
+guess_history_dict = {}
 
 def playing(player, deck):
     """
@@ -17,90 +21,132 @@ def playing(player, deck):
     """
     if not player.hand:
         return None
+
     print(" ")
     print(f"-------------- Playing: {player.name} -----------------")
-    # First round of the game the cards in the player's hand need to be added to our shuffled dictionary so the mapped
-    # index can be used by our strategy.
-    if len(player.hand) == 13:
-        create_shuffled_card_dict(player.hand, True)
 
-    in_hand_dict = {key: value for key, value in shuffled_card_dict.items() if value['is_in_hand']}
-    # Strategy
-    print("XXX", len(in_hand_dict))
-    card_to_play = get_max_card(in_hand_dict)
-    # Need to return the index of the card to play from the player's hand
-    return player.hand.index(card_to_play)
+    hand_indices = [get_card_index(card) for card in player.hand]
+    card_to_play_index = get_max_card(hand_indices)
+    return card_to_play_index
 
-def create_shuffled_card_dict(cards, is_in_hand):
+def create_deck_state_dict(player, cards):
     """
     This function takes in a deck of cards and fills in a dictionary where:
     - Key: The scrambled index from hash_card_index
     - Value: dict
     """
+    if player.name not in deck_state_dict.keys():
+        deck_state_dict[player.name] = {}
+
     for card in cards:
-        index = shuffle_card_index(card)
-        # Check to only initialize a card once
-        if index not in shuffled_card_dict.keys():
-            if is_in_hand:
-                shuffled_card_dict[index] = {
-                    'card': card,
-                    'is_in_hand': is_in_hand,
-                    'is_certain': True,
-                    'is_in_partner_hand': False,
-                    'has_been_exposed': False,
-                }
-            else:
-                shuffled_card_dict[index] = {
-                    'card': card,
-                    'numer': int(1),
-                    'denom': int(39),
-                    'is_in_hand': is_in_hand,
-                    'is_certain': False,
-                    'is_in_partner_hand': False,
-                    'has_been_exposed': False,
-                }
+        if card in player.hand:
+            is_in_hand = True
+        else:
+            is_in_hand = False
+
+        index = get_card_index(card)
+        if is_in_hand:
+            deck_state_dict[player.name][index] = {
+                'card': card,
+                'is_certain': True,
+                'is_possible_guess': False,
+                'is_in_hand': is_in_hand,
+                'is_in_partner_hand': False,
+            }
+        else:
+            deck_state_dict[player.name][index] = {
+                'card': card,
+                'numer': int(1),
+                'denom': int(39),
+                'prob': 0.025641,
+                'is_certain': False,
+                'is_possible_guess': True,
+                'is_in_hand': is_in_hand,
+                'is_in_partner_hand': False,
+            }
     return
 
-def shuffle_card_index(card):
+def get_card_index(card):
     """
     This function maps cards to an index and scrambles the index.
     """
-    suit_order = {"Hearts": 0, "Diamonds": 2, "Clubs": 1, "Spades": 3}
-    value_order = {"2": 7, "3": 10, "4": 4, "5": 5, "6": 11, "7": 3, "8": 2, "9": 13, "10": 6, "J": 1, "Q": 9, "K": 12,
-                   "A": 8}
-
     # Hash formula that combines suit and value in a less predictable way
-    suit = suit_order[card.suit]
-    value = value_order[card.value]
+    suit = SUIT_ORDER[card.suit]
+    value = VALUE_ORDER[card.value]
 
     index = suit * 13 + value
     return index
 
-def get_max_card(in_hand_dict):
+def get_max_card(hand_indices):
     """
     Play card with the highest index to create upper bound value.
     """
-    max_index = max(in_hand_dict.keys())
-    in_hand_dict[max_index]['has_been_exposed'] = True
-    max_card = in_hand_dict[max_index]['card']
-    return max_card
+    max_index = hand_indices.index(max(hand_indices))
+    return max_index
 
+def use_max_value_index(player, round):
+    """
+    Use the upper bound value strategy to inform guess
+    """
+    # Select cards that we are certain are in our partner's hand
+    certain_dict = get_certain_guesses(player)
+    num_certain_guesses = len(certain_dict)
+    certain_guesses = [certain_dict[key]['card'] for key in certain_dict.keys()]
 
-############################
+    # Select other cards that are possible logical guesses
+    guess_dict = get_possible_guesses(player)
+
+    # Take card exposed by partner and use it to inform the rest of our guesses
+    partner_exposed_card = get_partner_exposed_card(player)
+    exposed_index = get_card_index(partner_exposed_card)
+
+    # Apply max value strategy and filter to cards with rank < exposed_index
+    below_max_dict = {key: value for key, value in guess_dict.items() if key < exposed_index}
+
+    indices = list(below_max_dict.keys())
+    probs = [below_max_dict[idx]['prob'] for idx in indices]
+
+    #todo this was a band-aid fix
+    if round == 13:
+        combined_guesses = certain_guesses
+    elif 13-round > len(indices):
+        # Combined strategic and certain guesses
+        combined_guesses = random.sample(certain_guesses, 13-round)
+    else:
+        index_guesses = random.choices(indices, weights=probs, k=13-round-num_certain_guesses)
+        max_card_guesses = [below_max_dict[key]['card'] for key in index_guesses]
+
+        # Combined strategic and certain guesses
+        combined_guesses = max_card_guesses + certain_guesses
+    return combined_guesses
+
+def update_guess_history_dict(player, guesses, round):
+    if player.name not in guess_history_dict.keys():
+        guess_history_dict[player.name] = {}
+    guess_history_dict[player.name][round] = {'card_guesses': guesses,
+                                              'index_guesses': [get_card_index(card) for card in guesses],
+                                              'c_value': None,
+                                              }
+
 def get_partner_exposed_card(player):
     return player.exposed_cards[PARTNERS[player.name]][-1]
 
-def update_exposed_cards(exposed_cards):
-    # exposed_cards = {"North": [], "East": [], "South": [], "West": []}
-    # Update every has_been_exposed value in shuffled_card_dict
-    for player, cards in exposed_cards.items():
-        for card in cards:
-            shuffled_card_dict = {k: {**v, 'is_in_hand': True} if v['card'] == card else v for k, v in shuffled_card_dict.items()}
+def get_possible_guesses(player):
+    possible_guesses = {key: value for key, value in deck_state_dict[player.name].items() if value['is_possible_guess'] and not value['is_in_partner_hand']}
+    print("POSSIBLE GUESSES", len(possible_guesses))
+    return possible_guesses
 
-def remove_impossible_guesses():
-    guess_dict = {key: value for key, value in shuffled_card_dict.items() if not value['is_in_hand']}
-    guess_dict = {key: value for key, value in guess_dict.items() if not value['has_been_exposed']}
-    return guess_dict
+def get_certain_guesses(player):
+    certain_guesses = {key: value for key, value in deck_state_dict[player.name].items() if value['is_in_partner_hand'] and value['is_possible_guess']}
+    print("CERTAIN GUESSES", len(certain_guesses))
+    return certain_guesses
+
+def update_exposed_cards(player):
+    # exposed_cards = {"North": [], "East": [], "South": [], "West": []}
+    # Update all exposed cards to impossible guesses
+    for _, cards in player.exposed_cards.items():
+        for card in cards:
+            deck_state_dict[player.name] = {k: {**v, 'is_possible_guess': False} if v['card'] == card else v for k, v in deck_state_dict[player.name].items()}
 
 def guessing(player, cards, round):
     """
@@ -109,127 +155,69 @@ def guessing(player, cards, round):
     print(" ")
     print(f"-------------- Guessing: {player.name} -----------------")
 
-    # Initialize cards into the shuffled_card_dict
-    if round == 1:  # The initial round
-        create_shuffled_card_dict(cards)  # Initialize the dictionary
+    # Initialize cards into the deck_state_dict
+    if round == 1:
+        create_deck_state_dict(player, cards)
+
+    # Update cards that were exposed this round in deck state as is_possible_guess: False
+    update_exposed_cards(player)
+
     # Update probability of existing cards
-    else:
-        # After receiving the c_value from the previous round
-        if player.cVals:
-            c_value = player.cVals[-1]  # Get the last c_value
-            # Update the list of total possible cards (K)
-            total_possible_cards = len(shuffled_card_dict)
-            # Calculate the partner's current unexposed hand size (M)
-            partner_hand_size = 13 - (round - 1)  # Since partner exposes one card each round
-            # UNDO comment below
-            # update_probabilities(previous_guesses, c_value, total_possible_cards, partner_hand_size)
-            # Print updated probabilities
-            print("Updated Probabilities:")
-            # Sort probabilities in descending order
-            sorted_probs = sorted(
-                ((value[0], value[1] / value[2]) for value in shuffled_card_dict.values()),
-                key=lambda x: -x[1]
-            )
-            for card, prob in sorted_probs:
-                print(f"{card}: {prob:.4f}")
+    if player.cVals:
+        c_value = player.cVals[-1]
+        guess_history_dict[player.name][round-1]['c_value'] = c_value
 
+        # Update probabilities of cards in the deck_state_dict
+        # Todo - change this so that we are updating more dynamically across rounds of the game as we learn more info
+        prev_round = round-1
+        update_probabilities(player, guess_history_dict[player.name], prev_round)
 
-    update_exposed_cards(player.exposed_cards)
-    print("Number of cards to guess from: ", len(shuffled_card_dict))
-    guess_dict = remove_impossible_guesses()
-    print("Number of cards to guess from: ", len(guess_dict))
-
-    exposed_card = get_partner_exposed_card(player)
 
     # Partner player's exposed card is used as an upper bound for values to guess from.
-    guesses = use_max_value_index(exposed_card, guess_dict, round)
+    guesses = use_max_value_index(player, round)
+    update_guess_history_dict(player, guesses, round)
 
-    print(player.cVals, sum(player.cVals))
     return guesses
 
+def update_probabilities(player, guess_history_dict, prev_round):
 
-def use_max_value_index(exposed_card, not_in_hand_dict, round):
-    """
-    Use the upper bound value strategy to inform guess
-    """
-    # Get ranked value index of the card your partner exposed
-    for index, value in enumerate(RANKED_CARD_VALUES):
-        if value == exposed_card.value:
-            print(f"Value exposed as upper bound: {value} with the index of {index}")
-            max_value_index = index
-            break
+    # This means all guessed cards from the previous turn are NOT in your partner's hand.
+    if guess_history_dict[prev_round]['c_value'] == 0:
+        for index in guess_history_dict[prev_round]['index_guesses']:
+            deck_state_dict[player.name][index]['is_possible_guess'] = False
+            deck_state_dict[player.name][index]['is_certain'] = True
+            deck_state_dict[player.name][index]['numer'] = None
+            deck_state_dict[player.name][index]['denom'] = None
+    # This means all guessed cards from the previous turn are IN your partner's hand.
+    elif guess_history_dict[prev_round]['c_value'] == len(guess_history_dict[prev_round]['index_guesses']):
+        for index in guess_history_dict[prev_round]['index_guesses']:
+            deck_state_dict[player.name][index]['is_possible_guess'] = True
+            deck_state_dict[player.name][index]['is_certain'] = True
+            deck_state_dict[player.name][index]['is_in_partner_hand'] = True
+            deck_state_dict[player.name][index]['numer'] = None
+            deck_state_dict[player.name][index]['denom'] = None
+    else:
+        possible_guesses_dict = get_possible_guesses(player)
+        num_possible_cards = len(get_possible_guesses(player))
+        num_guesses = len(guess_history_dict[prev_round]['index_guesses'])
+        num_correct = guess_history_dict[prev_round]['c_value']
+        partner_hand_size = 13 - (prev_round - 1)  # Since partner exposes one card each round
 
-    possible_values = RANKED_CARD_VALUES[:max_value_index + 1]
-    print(f"Remaining possible values: {possible_values}")
-    for card in guess_deck:
-        if card.value not in possible_values:
-            guess_deck.remove(card)
-            print(f"Removed {card}")
+        guessed_card_factor = num_correct / num_guesses
+        # todo - sometimes this throws errors bc denom is 0
+        unguessed_card_factor = (partner_hand_size - num_correct) / (num_possible_cards - num_guesses)
 
-    return random.sample(guess_deck, 13 - round)
+        total_probability = 0  # To accumulate total probability for normalization
+        for index, value in possible_guesses_dict.items():
+            card = possible_guesses_dict[index]['card']
+            numer = possible_guesses_dict[index]['numer']
+            denom = possible_guesses_dict[index]['denom']
+            old_prob = numer/denom if denom != 0 else 0
 
-def get_guess_deck(player, cards):
-    """
-    This function takes in the list of all cards in the game and removes cards that would be illogical guesses.
-    Illogical guesses include:
-        - Cards in the players own hand
-        - Cards that have been exposed by other players in the game
+            if card in guess_history_dict[prev_round]['card_guesses']:
+                new_prob = old_prob * guessed_card_factor
+            else:
+                new_prob = old_prob * unguessed_card_factor
 
-    :param player:
-    :param cards: list[Card]
-    :return: list[Card]
-    """
-    # Remove cards in player's hand
-    guess_deck = set(cards) - set(player.hand)
-    # Remove cards that have been exposed
-    for _, exposed_cards in player.exposed_cards.items():
-        if len(exposed_cards) > 0:
-            guess_deck = guess_deck - set(exposed_cards)
-    return list(guess_deck)
-
-
-
-
-
-
-def update_probabilities(guesses, c_value, total_possible_cards, partner_hand_size):
-    N = len(guesses)  # Number of guesses made in the previous round
-    K = total_possible_cards  # Total possible cards that could be in partner's hand
-    M = partner_hand_size  # Partner's current unexposed hand size after exposing a card
-    C = c_value  # Number of correct guesses
-
-    if N == 0 or K - N == 0:
-        print("Division by zero encountered in update_probabilities.")
-        return
-
-    guessed_card_factor = C / N
-    unguessed_card_factor = (M - C) / (K - N)
-
-    total_probability = 0  # To accumulate total probability for normalization
-
-    for index, value in shuffled_card_dict.items():
-        card = value[0]
-        old_prob = value[1] / value[2] if value[2] != 0 else 0
-
-        if card in guesses:
-            new_prob = old_prob * guessed_card_factor
-        else:
-            new_prob = old_prob * unguessed_card_factor
-
-        value[1] = new_prob
-        value[2] = 1
-
-        total_probability += new_prob
-
-    # Normalize probabilities so that they sum to M (current partner hand size)
-    if total_probability == 0:
-        print("Total probability is zero after updates. Cannot normalize probabilities.")
-        return
-
-    normalization_factor = M / total_probability
-
-    for index, value in shuffled_card_dict.items():
-        prob = value[1] / value[2]
-        normalized_prob = prob * normalization_factor
-        value[1] = normalized_prob  # Update numerator with normalized probability
-        value[2] = 1  # Denominator remains 1
+            deck_state_dict[player.name][index]['prob'] = new_prob
+            total_probability += new_prob
