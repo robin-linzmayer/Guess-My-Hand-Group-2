@@ -10,12 +10,6 @@ class Card:
 
     def __str__(self):
         return f"{self.value} of {self.suit}"
-    
-    def __hash__(self):
-        return hash((self.suit, self.value))
-
-    def __eq__(self, other):
-        return (self.suit, self.value) == (other.suit, other.value)
 
 class Deck:
     def __init__(self, seed=42):

@@ -2,6 +2,16 @@ import random
 import numpy as np
 from CardGame import Card, Deck, Player
 
+"""
+Add the following lines of code to Card Game for the code to work:
+
+def __hash__(self):
+        return hash((self.suit, self.value))
+
+def __eq__(self, other):
+        return (self.suit, self.value) == (other.suit, other.value)
+        
+"""
 # G7 is the best
 
 #Stores guesses by player and round 
