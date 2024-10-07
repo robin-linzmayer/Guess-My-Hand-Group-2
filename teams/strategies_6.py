@@ -27,9 +27,9 @@ def playing(player, deck):
 
     return ctuples_in_hand.index(bound_card)
 
-def guessing(player, cards, round):
+def guessing(player, cards, round, previous_guesses=[], correct_guesses=[]):
     """
-    Returns a list of n Card objects to guess partner's hand.
+    Returns a list of n Card objects to guess partner's hand, incorporating feedback from previous guesses.
     """
     card_probs_by_index = {index: 1/52 for index in range(1, 53)}
     partner = get_partner(player.name)
@@ -68,7 +68,7 @@ def guessing(player, cards, round):
             del card_probs_by_index[index]
 
     # Update card probabilities based on previous guesses
-    # COMPLETE THIS
+    card_probs_by_index = update_probabilities_based_on_feedback(card_probs_by_index, previous_guesses, correct_guesses, all_ctuples_exposed, ctuples_to_indices)
 
     # Determine your guesses by finding n cards with highest probabilities
     n = 13 - round
@@ -81,6 +81,30 @@ def guessing(player, cards, round):
         card_guesses.append(ctuples_to_cards[indices_to_ctuples[index]])
 
     return card_guesses
+
+def update_probabilities_based_on_feedback(card_probs_by_index, previous_guesses, correct_guesses, exposed_cards, ctuples_to_indices):
+    """
+    Adjusts the probabilities of remaining cards based on feedback from previous guesses.
+    """
+    for guess, c_value in zip(previous_guesses, correct_guesses):
+        exposed_in_guess = [ctuple for ctuple in guess if ctuple in exposed_cards]
+        remaining_in_guess = [ctuple for ctuple in guess if ctuple not in exposed_cards]
+        
+        # If cards from the guess have been exposed, update the probabilities of the remaining ones
+        if len(exposed_in_guess) < c_value:
+            for ctuple in remaining_in_guess:
+                index = ctuples_to_indices[ctuple]
+                if index in card_probs_by_index:
+                    card_probs_by_index[index] *= 1.5  # Increase probability if it's still valid
+        
+        # If too many cards have been exposed, reduce the probabilities of remaining ones
+        elif len(exposed_in_guess) > c_value:
+            for ctuple in remaining_in_guess:
+                index = ctuples_to_indices[ctuple]
+                if index in card_probs_by_index:
+                    card_probs_by_index[index] *= 0.5  # Decrease probability
+        
+    return card_probs_by_index
 
 def create_ctuple_to_index_mapping(seed, ctuples, createReverseMap=False):
     """
