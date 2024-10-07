@@ -11,6 +11,24 @@ class Card:
 
     def __str__(self):
         return f"{self.value} of {self.suit}"
+    
+    def __repr__(self):
+        return str(self)
+
+    # Override __eq__ for equality comparison
+    # allows us to use
+    #   `card in cards`
+    # instead of
+    #   `str(card) in [str(c) for c in cards]`
+    def __eq__(self, other):
+        if isinstance(other, Card):
+            return self.suit == other.suit and self.value == other.value
+        return False
+
+    # Override __hash__ for hashability 
+    # required for user defined __eq__
+    def __hash__(self):
+        return hash((self.suit, self.value)) 
 
     def __repr__(self):
         return f"{self.value} of {self.suit}"
@@ -63,3 +81,9 @@ class Player:
 
     def update_exposed_cards(self, player_name, card):
         self.exposed_cards[player_name].append(card)
+
+    def __str__(self) -> str:
+        return f"Player({self.name})"
+    
+    def __repr__(self) -> str:
+        return str(self)
