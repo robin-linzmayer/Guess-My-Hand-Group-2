@@ -130,37 +130,36 @@ def guessing(player, cards, round):
         return list(set(chosen) - set(teamMatesPlayedCards))
     else:
         if round == 1:
-            init_card_probs(card_probabilities, player)
+            init_card_probs(cards, card_probabilities, player)
         
         update_card_probs(cards, card_probabilities, player)
         
         viableCardsMinusTeamMatePlayed = list(set(get_viable_cards(cards, player)) - set(teamMatesPlayedCards))
         return random.sample(viableCardsMinusTeamMatePlayed, 13 - round)
     
-def init_card_probs(card_probabilities, player):
+def init_card_probs(cards, card_probabilities, player):
     # set up dict
     card_probabilities[player.name] = {}
-    for i in ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']:
-        for j in ['H', 'C', 'D', 'S']:
-            card_probabilities[player.name][f'{i}{j}'] = 1
+    for card in cards:
+        card_probabilities[player.name][card] = 1
 
 
 def update_card_probs(cards, card_probabilities, player):
     # remove the cards that were played
     for card in set(cards) - set(get_viable_cards(cards, player)):
-        if f'{card.value}{card.suit[0]}' in card_probabilities[player.name]:
-            del card_probabilities[player.name][f'{card.value}{card.suit[0]}']
+        if card in card_probabilities[player.name]:
+            del card_probabilities[player.name][card]
 
     # remove partner's card
     partner_card = get_team_mates_exposed_cards(player)[-1]
-    del card_probabilities[player.name][f'{partner_card.value}{partner_card.suit[0]}']
+    del card_probabilities[player.name][partner_card]
 
     print(card_probabilities[player.name].keys())
 
     # update probabilities of remaining valid cards
     for card in get_viable_cards(cards, player):
-        if f'{card.value}{card.suit[0]}' in card_probabilities[player.name]:
-            card_probabilities[player.name][f'{card.value}{card.suit[0]}'] = 1 / len(card_probabilities[player.name])
+        if card in card_probabilities[player.name]:
+            card_probabilities[player.name][card] = 1 / len(card_probabilities[player.name])
 
 
 def get_team_mates_exposed_cards(player) -> list:
