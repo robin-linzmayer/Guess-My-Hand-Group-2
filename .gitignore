@@ -1,4 +1,7 @@
 __pycache__/
 teams/__pycache__/
-.vscode/
-venv/
+bin/
+project2/pyvenv.cfg
+.gitignore
+lib/
+.gitignore
