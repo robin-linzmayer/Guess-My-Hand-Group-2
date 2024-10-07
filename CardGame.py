@@ -1,6 +1,7 @@
 import random
 from copy import copy
 
+
 class Card:
     def __init__(self, suit, value):
         self.suit = suit
@@ -11,9 +12,21 @@ class Card:
     def __str__(self):
         return f"{self.value} of {self.suit}"
 
+    def __repr__(self):
+        return f"{self.value} of {self.suit}"
+
+    def __eq__(self, other):
+        if isinstance(other, Card):
+            return self.suit == other.suit and self.value == other.value
+        return False
+
+    def __hash__(self):
+        return hash((self.suit, self.value))
+
+
 class Deck:
     def __init__(self, seed=42):
-        self.suits = ["Hearts", "Diamonds", "Clubs", "Spades"] 
+        self.suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
         self.values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
         self.cards = [Card(suit, value) for suit in self.suits for value in self.values]
         self.copyCards = copy(self.cards)
@@ -25,16 +38,16 @@ class Deck:
             return self.cards.pop()
         return None
 
+
 class Player:
     def __init__(self, name, strategy):
-        self.name = name
-        self.hand = []
-        self.played_cards = []
+        self.name: str = name
+        self.hand: list[Card] = []
+        self.played_cards: list[Card] = []
         self.strategy = strategy
         self.guesses = []
         self.exposed_cards = {"North": [], "East": [], "South": [], "West": []}
         self.cVals = []
-
 
     def draw(self, deck):
         card = deck.draw()
