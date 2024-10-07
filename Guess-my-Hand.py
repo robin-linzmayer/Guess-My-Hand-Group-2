@@ -286,7 +286,7 @@ def run_game_without_gui(seed):
         ew_score += cEast + cWest
         
         round += 1
-    
+    del deck, players, northGuess, southGuess, eastGuess, westGuess
     return {"NS": ns_score, "EW": ew_score}
 
 
