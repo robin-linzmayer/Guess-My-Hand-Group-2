@@ -1,4 +1,3 @@
-import random
 from collections import defaultdict, deque
 
 """
@@ -31,20 +30,28 @@ self.cards = [Card(suit, value) for suit in self.suits for value in self.values]
 
 # Use to get card value with order 2 to A
 card_val = {
-    '2' : 1,
-    '3' : 2,
-    '4' : 3,
-    '5' : 4,
-    '6' : 5,
-    '7' : 6,
-    '8' : 7,
-    '9' : 8,
-    '10' : 9,
-    'J' : 10,
-    'Q' : 11,
-    'K' : 12,
-    'A' : 13,
+    '2' : 0,
+    '3' : 1,
+    '4' : 2,
+    '5' : 3,
+    '6' : 4,
+    '7' : 5,
+    '8' : 6,
+    '9' : 7,
+    '10' : 8,
+    'J' : 9,
+    'Q' : 10,
+    'K' : 11,
+    'A' : 12,
 }
+# Use to get suit value
+suit_val = {
+    'Spades' : 0,
+    'Clubs' : 1,
+    'Hearts' : 2,
+    'Diamonds' : 3,
+}
+
 # Use to get teammate of current player
 teammate = {
     "North" : "South",
@@ -54,6 +61,12 @@ teammate = {
 }
 
 teammate_max = ''
+player_guesses = {
+    'North' : [],
+    'East' : [],
+    'South' : [],
+    'West' : []
+}
 
 # Use to get anti-suit
 # anti_suits  = {
@@ -64,6 +77,71 @@ teammate_max = ''
 # }
 
 # anti_suit_guess = deque(['Diamonds', 'Hearts,', 'Clubs', 'Spades'])
+
+
+
+# Converts a card to the index in card_probability
+# def card_to_index (suit, val):
+#     return (13 * suit_val[suit]) + card_val[val]
+# Use to get the current probability of guessing a card
+# Keys: Card Object, Val : 1/52
+
+
+# Remove cards from player.hand in card_probability 
+def remove_cards_from_hand(player, card_probability):
+    for card in player.hand:
+        if card in card_probability:
+            del card_probability[card]
+
+# Remove cards from exposed cards in card_probability 
+def remove_cards_from_exposed_cards(player, card_probability):
+    for cards in player.exposed_cards.values():
+        for exposed_card in cards:
+            for card in card_probability:
+                if card in card_probability and card.suit == exposed_card and card_val[card.value] <= card_val[exposed_card]:
+                    del card_probability[card]
+
+
+# Updates card_probability based on previous guesses
+def update_card_probability(player, card_probability):
+    total_viable_cards = len(card_probability)
+    teammate_played_cards = player.exposed_cards[teammate[player.name]]
+
+    for ind, guesses in enumerate(player_guesses[player.name]):
+        correct_guesses = player.cVals[ind]
+        total_guesses = len(guesses)
+
+        num = correct_guesses
+        den = total_guesses
+
+        for card in guesses:
+            if card not in card_probability:
+                den -= 1
+            elif card in teammate_played_cards:
+                num -= 1
+        
+        if den > 0:
+            guess_prob = num / den
+
+            for card in guesses:
+                if card in card_probability:
+                    card_probability[card] = max(guess_prob, card_probability[card])
+        
+        unguessed_cards = set()
+
+        for card in card_probability:
+            if card not in guesses:
+                unguessed_cards.add(card)
+        
+        num_of_unguessed_cards = len(unguessed_cards)
+
+        if num_of_unguessed_cards > 0:
+            missed_guesses = total_guesses - correct_guesses
+            unGuess_prob = missed_guesses / num_of_unguessed_cards
+
+            for card in unguessed_cards:
+                card_probability[card] = max(unGuess_prob, card_probability[card])
+
 
 def playing(player, deck):
     """
@@ -109,6 +187,15 @@ def guessing(player, cards, round):
     """
     Guesses the Anti-Suit based on teammate's exposed card
     """
+
+    card_probability = {card : 1/52 for card in cards}
+    remove_cards_from_hand(player, card_probability)
+    remove_cards_from_exposed_cards(player, card_probability)
+    # print("Guesses: ", player_guesses)
+    print("Player cVals: ", player.cVals)
+    if round > 1:
+        update_card_probability(player, card_probability)
+
     num_of_guesses = 13 - round
     teammate_suit = player.exposed_cards[teammate[player.name]][0].suit
     anti_suits = deque(['Diamonds', 'Hearts', 'Clubs', 'Spades'])
@@ -131,26 +218,34 @@ def guessing(player, cards, round):
         anti_suit = anti_suits[0]
         teammate_max = anti_suit
 
-
-
-        
     # print(teammate_suit, anti_suit)
-    potential_guesses = [card for card in cards if card.suit == teammate_max] # All 13 cards of the teammate_suit
-    potential_guesses.sort(key=lambda x:card_val[x.value])
+    
 
+    # # This is a testing print
     # val_check_arr = []
     # for card in potential_guesses:
-    #     val_check_arr.append(card.value)
-    # print(val_check_arr)
+    #     val_check_arr.append((card.value, card.suit))
+    # print("Potential Guesses:", val_check_arr)
+    
+    potential_guesses = [card for card in card_probability if card.suit == teammate_max] # All 13 cards of the teammate_suit
+    potential_guesses.sort(key=lambda x:card_val[x.value])
+    # This is a testing print
+    val_check_arr = []
+    for card in potential_guesses:
+        val_check_arr.append((card.value, card.suit))
+    print("Potential Guesses:", val_check_arr)
+    
+    if len(potential_guesses) < num_of_guesses:
+        num_of_missing_cards = num_of_guesses - len(potential_guesses)
+        extra_guesses = []
+        for card in card_probability.keys():
+            if card not in potential_guesses:
+                extra_guesses.append(card)
+        potential_guesses.extend(sorted(extra_guesses, key=lambda x : card_probability[x], reverse=True)[:num_of_missing_cards])
 
-    # # Remove from potential_guesses if in our own hand 
-    # for card in player.hands:
-    #     if card in potential_guesses:
-    #         potential_guesses.remove(card)
+    if len(potential_guesses) > num_of_guesses:
+        potential_guesses = potential_guesses[:13-round]
 
-    # # Remove from potential_guesses if it has been played
-    # for card in player.exposed_cards.values():
-    #     if card in potential_guesses:
-    #         potential_guesses.remove(card)
+    player_guesses[player.name].append(potential_guesses)
 
-    return potential_guesses[:-round]
+    return potential_guesses
