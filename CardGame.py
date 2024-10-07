@@ -26,7 +26,7 @@ class Card:
 
 class Deck:
     def __init__(self, seed=42):
-        self.suits = ["Hearts", "Diamonds", "Clubs", "Spades"]
+        self.suits = ["Hearts", "Diamonds", "Clubs", "Spades"] 
         self.values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
         self.cards = [Card(suit, value) for suit in self.suits for value in self.values]
         self.copyCards = copy(self.cards)
@@ -38,7 +38,6 @@ class Deck:
             return self.cards.pop()
         return None
 
-
 class Player:
     def __init__(self, name, strategy):
         self.name: str = name
@@ -48,6 +47,7 @@ class Player:
         self.guesses = []
         self.exposed_cards = {"North": [], "East": [], "South": [], "West": []}
         self.cVals = []
+
 
     def draw(self, deck):
         card = deck.draw()
