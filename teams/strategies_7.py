@@ -6,8 +6,6 @@ from CardGame import Card, Deck, Player
 
 # G7 is the best
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 flag = 0
 card_probability = {}   # dictionary to store the probability of each card in the deck
 for i in range(2, 15):
@@ -71,13 +69,6 @@ flag = 0
 
 #Stores guesses by player and round 
 player_guesses = {}
-<<<<<<< HEAD
-=======
->>>>>>> 5acd246 (Fixed conflicts)
-=======
-#Stores guesses by player and round 
-player_guesses = {}
->>>>>>> 4e5ae20 (Integrated code)
 
 SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
@@ -299,10 +290,6 @@ def zero_probabilities(prob_dict, cards):
 
 
 def guessing(player, cards, round):
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 4e5ae20 (Integrated code)
     global player_guesses
     if round == 1:
         global CARD_PROBABILITIES
@@ -310,11 +297,6 @@ def guessing(player, cards, round):
         zero_probabilities(player.hand)
         
     normalize_probabilities()
-<<<<<<< HEAD
-=======
-    card_probs = {num:1/39 for num in range(NUM_CARDS)}
-    card_probs = zero_probabilities(card_probs, player.hand)
->>>>>>> 32d81d9 (Global variable fixed, it is instead just updated from 0 every turn. Should work now)
     exposed_cards = [i for j in list(player.exposed_cards.values()) for i in j]
     card_probs = zero_probabilities(card_probs, exposed_cards)
     card_probs = zero_probabilities(card_probs, player.played_cards)
@@ -346,8 +328,7 @@ def guessing(player, cards, round):
     return card_choices_obj
     card_probs = {num:1/39 for num in range(NUM_CARDS)}
     card_probs = zero_probabilities(card_probs, player.hand)
-=======
->>>>>>> 4e5ae20 (Integrated code)
+
     exposed_cards = [i for j in list(player.exposed_cards.values()) for i in j]
     zero_probabilities(exposed_cards)
     zero_probabilities(player.played_cards)
@@ -370,10 +351,6 @@ def guessing(player, cards, round):
         replace=False)
     card_choices = [NUM_TO_CARD[card] for card in choice]
     card_choices_obj = [Card(card[0], card[1]) for card in card_choices]
-<<<<<<< HEAD
-    return card_choices_obj
-    return random.sample(cards, 13 - round)
-=======
 
     if player.name not in player_guesses:
         player_guesses[player.name] = {}  # Initialize if not present
@@ -381,4 +358,3 @@ def guessing(player, cards, round):
     player_guesses[player.name][round] = card_choices_obj
 
     return card_choices_obj
->>>>>>> 4e5ae20 (Integrated code)
