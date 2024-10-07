@@ -105,6 +105,7 @@ def playing(player: Player, deck: Deck):
 hash_index_to_search = {}
 hash_map = {}
 card_probabilities = {}
+guesses = {}
 def guessing(player, cards, round):
     global hash_map
     global hash_index_to_search
@@ -131,11 +132,17 @@ def guessing(player, cards, round):
     else:
         if round == 1:
             init_card_probs(cards, card_probabilities, player)
+            guesses[player.name] = []
         
         update_card_probs(cards, card_probabilities, player)
+
+        print('card probs', len(card_probabilities[player.name]))
+        for card in card_probabilities[player.name]:
+            print(f'{card}: {card_probabilities[player.name][card]}, number of times guessed: {len([guess for guess in guesses[player.name] if card in guess])}')
         
-        viableCardsMinusTeamMatePlayed = list(set(get_viable_cards(cards, player)) - set(teamMatesPlayedCards))
-        return random.sample(viableCardsMinusTeamMatePlayed, 13 - round)
+        guess = random.choices(list(card_probabilities[player.name].keys()), list(card_probabilities[player.name].values()), k=13 - round)
+        guesses[player.name].append(guess)
+        return guess
     
 def init_card_probs(cards, card_probabilities, player):
     # set up dict
@@ -154,12 +161,34 @@ def update_card_probs(cards, card_probabilities, player):
     partner_card = get_team_mates_exposed_cards(player)[-1]
     del card_probabilities[player.name][partner_card]
 
-    print(card_probabilities[player.name].keys())
-
-    # update probabilities of remaining valid cards
-    for card in get_viable_cards(cards, player):
+    # first round only
+    if len(guesses[player.name]) == 0:
+        return
+    
+    # remove cards in last guess that were played
+    last_guess = []
+    for card in guesses[player.name][-1]:
         if card in card_probabilities[player.name]:
-            card_probabilities[player.name][card] = 1 / len(card_probabilities[player.name])
+            last_guess.append(card)
+
+    # count how many correct guesses 'remain' in that guess
+    played_guessed_right = set(guesses[player.name][-1]).intersection(set(get_team_mates_exposed_cards(player)))
+    last_cval = player.cVals[-1] - len(played_guessed_right)
+
+    # update probabilities of cards in last guess
+    for card in last_guess:
+        if card in card_probabilities[player.name]:
+            card_probabilities[player.name][card] = last_cval / len(last_guess)
+
+    # update probabilities of cards not in last guess
+    for card in set(cards) - set(last_guess):
+        if card in card_probabilities[player.name]:
+            card_probabilities[player.name][card] = (len(guesses[player.name][-1]) - 1 - last_cval) / (len(card_probabilities[player.name]) - len(last_guess))
+
+    # # update probabilities of remaining valid cards
+    # for card in get_viable_cards(cards, player):
+    #     if card in card_probabilities[player.name]:
+    #         card_probabilities[player.name][card] = 1 / len(card_probabilities[player.name])
 
 
 def get_team_mates_exposed_cards(player) -> list:
