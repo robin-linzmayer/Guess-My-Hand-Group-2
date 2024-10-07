@@ -12,16 +12,23 @@ def playing(player, deck):
     turn_number = len(player.cVals) + 1
     card_vals = [card_to_val(card) for card in player.hand]
 
-    extrema = max(card_vals) if turn_number % 2 else min(card_vals)
+    extrema = max(card_vals) if turn_number % 2 == 0 else min(card_vals)
 
     return card_vals.index(extrema)
 
 
-guesses = defaultdict(list)
+avg = [0] * 12
+count = 0
 
 
 def guessing(player, cards, round):
-    print(player.name, player.cVals)
+    # if round == 13:
+    #     global count
+    #     count += 1
+    #     for i in range(len(player.cVals)):
+    #         avg[i] = (avg[i] * (count - 1) + player.cVals[i]) / count
+
+    #     print(player.name, avg)
     cp = {val: 1 / 52 for val in range(52)}
 
     for held_card in player.hand:
@@ -37,7 +44,7 @@ def guessing(player, cards, round):
     partner_name = partner(player.name)
     for i, card in enumerate(player.exposed_cards[partner_name]):
         val = card_to_val(card)
-        if i % 2 == 1:
+        if i % 2 == 0:
             for key in list(cp.keys()):
                 if key <= val:
                     del cp[key]
@@ -62,8 +69,7 @@ def guessing(player, cards, round):
     # print(selected_vals, len(cp))
     # for k in cp:
     #     print(k, ":", cp[k])
-    # print(13 - round, sum(cp.values()))
-    print("\n\n")
+    # print("\n\n")
     return selected
 
 
@@ -86,9 +92,9 @@ def update_probabilities_with_guesses(player, cp, round):
             elif card_val not in cp:
                 denominator -= 1
 
-        # print("Prob: ", numerator, denominator, guess_set)
         if denominator > 0:
             remaining_prob = numerator / denominator
+            # print("Guessed", guess_set, remaining_prob, numerator)
             for card_val in guess_set:
                 if card_val in cp:
                     if numerator <= 0:
@@ -101,12 +107,12 @@ def update_probabilities_with_guesses(player, cp, round):
             if card_val not in guess_set:
                 unguessed_cards.add(card_val)
 
-        # print("Unguessed", unguessed_cards)
         # print(len(unguessed_cards), len(guess_set), len(cp))
 
         if len(unguessed_cards) > 0:
             missed_guesses = len(guess_set) - player.cVals[past_round]
             remaining_prob = min(missed_guesses / len(unguessed_cards), 1)
+            # print("Unguessed", unguessed_cards, remaining_prob, missed_guesses)
             # print(missed_guesses, len(unguessed_cards))
             for card_val in unguessed_cards:
                 if missed_guesses <= 0:
