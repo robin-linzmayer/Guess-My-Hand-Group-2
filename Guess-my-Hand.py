@@ -168,8 +168,7 @@ class Game:
             print(player.name, played_card.value, played_card.suit)
             # Update exposed cards for other players
             for j, other_player in enumerate(self.players):
-                if i != j:
-                    other_player.update_exposed_cards(player.name, played_card)
+                other_player.update_exposed_cards(player.name, played_card)
 
         northGuess = NorthSouthGuess(self.players[0], self.copyCards, self.round)
         self.players[0].guesses.append(northGuess)
@@ -262,8 +261,7 @@ def run_game_without_gui(seed):
             card_index = player.strategy(player, deck)
             played_card = player.play_card(card_index)
             for other_player in players:
-                if other_player != player:
-                    other_player.update_exposed_cards(player.name, played_card)
+                other_player.update_exposed_cards(player.name, played_card)
         
     
     # Calculate final scores
@@ -289,6 +287,7 @@ def run_game_without_gui(seed):
         round += 1
     
     return {"NS": ns_score, "EW": ew_score}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Guess My Hand")
