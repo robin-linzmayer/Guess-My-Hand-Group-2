@@ -168,8 +168,7 @@ class Game:
             print(player.name, played_card.value, played_card.suit)
             # Update exposed cards for other players
             for j, other_player in enumerate(self.players):
-                if i != j:
-                    other_player.update_exposed_cards(player.name, played_card)
+                other_player.update_exposed_cards(player.name, played_card)
 
         northGuess = NorthSouthGuess(self.players[0], self.copyCards, self.round)
         self.players[0].guesses.append(northGuess)
@@ -262,8 +261,7 @@ def run_game_without_gui(seed):
             card_index = player.strategy(player, deck)
             played_card = player.play_card(card_index)
             for other_player in players:
-                if other_player != player:
-                    other_player.update_exposed_cards(player.name, played_card)
+                other_player.update_exposed_cards(player.name, played_card)
         
     
     # Calculate final scores
@@ -290,6 +288,7 @@ def run_game_without_gui(seed):
     
     return {"NS": ns_score, "EW": ew_score}
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Guess My Hand")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for card shuffling")
@@ -306,22 +305,38 @@ if __name__ == "__main__":
     if args.nsStrategy in range(0, 11):
         file_name = f"strategies_{args.nsStrategy}"
         class_name = "playing"
-        NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+        try:
+            NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("North South Strategy import failed. Using the default strategy")
+            pass
 
     if args.ewStrategy in range(0, 11):
         file_name = f"strategies_{args.ewStrategy}"
         class_name = "playing"
-        EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+        try:
+            EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("East West Strategy import failed. Using the default strategy")
+            pass
 
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
         class_name = "guessing"
-        NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
+        try:
+            NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("North South Guesses import failed. Using the default strategy")
+            pass
 
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
         class_name = "guessing"
-        EastWestGuess = import_class_from_file(folder, file_name, class_name)
+        try:
+            EastWestGuess = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("East West guesses import failed. Using the default strategy")
+            pass
 
     if args.nSims:
         total_scores = {"NS": 0, "EW": 0}
