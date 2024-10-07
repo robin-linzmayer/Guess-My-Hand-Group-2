@@ -163,7 +163,6 @@ def get_possible_guesses(player):
         for key, value in deck_state_dict[player.name].items()
         if value["is_possible_guess"] and not value["is_in_partner_hand"]
     }
-    print("POSSIBLE GUESSES", len(possible_guesses))
     return possible_guesses
 
 
@@ -173,7 +172,6 @@ def get_certain_guesses(player):
         for key, value in deck_state_dict[player.name].items()
         if value["is_in_partner_hand"] and value["is_possible_guess"]
     }
-    print("CERTAIN GUESSES", len(certain_guesses))
     return certain_guesses
 
 
