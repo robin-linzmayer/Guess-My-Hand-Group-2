@@ -67,8 +67,29 @@ def normalize(probability_dict):
             probability_dict[card] /= total_prob
 
 def playing(player, deck):
+    turn = len(player.played_cards) + 1
+
+    flag =  (turn % 2)
+
+    if flag == 0:
+        flag = 1
+        return max_first(player, deck)
+    else:
+        flag = 0
+        return min_first(player, deck)
+
+def max_first(player, deck):
     """
-    Max First strategy
+    Max First strategy.
+    
+    This strategy always plays the highest-value card in the player's hand.
+    
+    Parameters:
+    player (Player): The current player object.
+    deck (Deck): The current deck object.
+    
+    Returns:
+    int or None: The index of the card to be played, or None if no card can be played.
     """
     if not player.hand:
         return None
@@ -84,6 +105,35 @@ def playing(player, deck):
             max_index = i
     
     return max_index
+
+def min_first(player, deck):
+    """
+    Min First strategy.
+    
+    This strategy always plays the lowest-value card in the player's hand.
+    
+    Parameters:
+    player (Player): The current player object.
+    deck (Deck): The current deck object.
+    
+    Returns:
+    int or None: The index of the card to be played, or None if no card can be played.
+    """
+    if not player.hand:
+        return None
+    
+    value_order = deck.values
+    min_index = 0
+    min_value = len(value_order)
+    
+    for i, card in enumerate(player.hand):
+        value = value_order.index(card.value)
+        if value < min_value:
+            min_value = value
+            min_index = i
+    
+    return min_index
+
 
 def normalize_probabilities(player):
     total = sum(player.card_probabilities.values())
