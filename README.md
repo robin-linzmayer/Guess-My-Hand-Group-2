@@ -33,9 +33,9 @@ pip install tk
 
 ## Usage
 
-To view all options use python Guess-my-Hand-GUI.py -h. Apart from seed, the other flags will be used for competition among different teams.
+To view all options use python Guess-my-Hand.py -h. Apart from seed, the other flags will be used for competition among different teams.
 ```bash
-python Guess-my-Hand-GUI.py  [--seed] 
+python Guess-my-Hand.py  [--seed] 
 ```
 
 For running the simulation multiple times with different seeds use the Guess-my-Hand.py with --nSims flag set to the number of simulations.

@@ -168,13 +168,16 @@ class Game:
             print(player.name, played_card.value, played_card.suit)
             # Update exposed cards for other players
             for j, other_player in enumerate(self.players):
-                if i != j:
-                    other_player.update_exposed_cards(player.name, played_card)
+                other_player.update_exposed_cards(player.name, played_card)
 
         northGuess = NorthSouthGuess(self.players[0], self.copyCards, self.round)
+        self.players[0].guesses.append(northGuess)
         eastGuess = EastWestGuess(self.players[1], self.copyCards, self.round)
+        self.players[1].guesses.append(eastGuess)
         southGuess = NorthSouthGuess(self.players[2], self.copyCards, self.round)
+        self.players[2].guesses.append(southGuess)
         westGuess = EastWestGuess(self.players[3], self.copyCards, self.round)
+        self.players[3].guesses.append(westGuess)
         for widget in self.guesses_frame.winfo_children()[1:]:
             widget.destroy()
 
@@ -258,19 +261,34 @@ def run_game_without_gui(seed):
             card_index = player.strategy(player, deck)
             played_card = player.play_card(card_index)
             for other_player in players:
-                if other_player != player:
-                    other_player.update_exposed_cards(player.name, played_card)
+                other_player.update_exposed_cards(player.name, played_card)
         
     
     # Calculate final scores
-        ns_score += len(set(NorthSouthGuess(players[0], deck.copyCards, round)).intersection(set(players[2].hand))) + \
-                len(set(NorthSouthGuess(players[2], deck.copyCards, round)).intersection(set(players[0].hand)))
-        ew_score += len(set(EastWestGuess(players[1], deck.copyCards, round)).intersection(set(players[3].hand))) + \
-                len(set(EastWestGuess(players[3], deck.copyCards, round)).intersection(set(players[1].hand)))
+        northGuess = NorthSouthGuess(players[0], deck.copyCards, round)
+        players[0].guesses.append(northGuess)
+        eastGuess = EastWestGuess(players[1], deck.copyCards, round)
+        players[1].guesses.append(eastGuess)
+        southGuess = NorthSouthGuess(players[2], deck.copyCards, round)
+        players[2].guesses.append(southGuess)
+        westGuess = EastWestGuess(players[3], deck.copyCards, round)
+        players[3].guesses.append(westGuess)
+        cNorth = len(set(northGuess).intersection(set(players[2].hand)))
+        players[0].cVals.append(cNorth)
+        cEast = len(set(eastGuess).intersection(set(players[3].hand)))
+        players[1].cVals.append(cEast)
+        cSouth = len(set(southGuess).intersection(set(players[0].hand)))
+        players[2].cVals.append(cSouth)
+        cWest = len(set(westGuess).intersection(set(players[1].hand)))
+        players[3].cVals.append(cWest)
+        print(f"round: {round} N-{cNorth} S-{cSouth}")
+        ns_score += cNorth + cSouth
+        ew_score += cEast + cWest
         
         round += 1
-    
+    del deck, players, northGuess, southGuess, eastGuess, westGuess
     return {"NS": ns_score, "EW": ew_score}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Guess My Hand")
@@ -288,25 +306,43 @@ if __name__ == "__main__":
     if args.nsStrategy in range(0, 11):
         file_name = f"strategies_{args.nsStrategy}"
         class_name = "playing"
-        NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+        try:
+            NorthSouthStrategy = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("North South Strategy import failed. Using the default strategy")
+            pass
 
     if args.ewStrategy in range(0, 11):
         file_name = f"strategies_{args.ewStrategy}"
         class_name = "playing"
-        EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+        try:
+            EastWestStrategy = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("East West Strategy import failed. Using the default strategy")
+            pass
 
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
         class_name = "guessing"
-        NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
+        try:
+            NorthSouthGuess = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("North South Guesses import failed. Using the default strategy")
+            pass
 
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
         class_name = "guessing"
-        EastWestGuess = import_class_from_file(folder, file_name, class_name)
+        try:
+            EastWestGuess = import_class_from_file(folder, file_name, class_name)
+        except:
+            print("East West guesses import failed. Using the default strategy")
+            pass
 
     if args.nSims:
         total_scores = {"NS": 0, "EW": 0}
+        # get consistent sequence of simulations given the seed
+        random.seed(args.seed)
         for _ in tqdm(range(args.nSims)):
             seed = random.randint(0, 10000) 
             scores = run_game_without_gui(seed)
