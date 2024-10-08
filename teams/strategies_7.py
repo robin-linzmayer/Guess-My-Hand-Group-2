@@ -105,10 +105,18 @@ def max_first(player, deck):
     max_index = 0
     max_value = -1
 
+    # for i, card in enumerate(player.hand):
+    #     value = value_order.index(card.value)
+    #     if value > max_value:
+    #         max_value = value
+    #         max_index = i
+    
+
+    highest_card = -1
     for i, card in enumerate(player.hand):
-        value = value_order.index(card.value)
-        if value > max_value:
-            max_value = value
+        card_value = REV_CARD_TO_NUM[(card.suit, card.value)]
+        if card_value > highest_card:
+            highest_card = card_value
             max_index = i
     
     return max_index
@@ -129,16 +137,23 @@ def min_first(player, deck):
     if not player.hand:
         return None
     
-    value_order = deck.values
-    min_index = 0
-    min_value = len(value_order)
+    # value_order = deck.values
+    # min_index = 0
+    # min_value = len(value_order)
     
+    # for i, card in enumerate(player.hand):
+    #     value = value_order.index(card.value)
+    #     if value < min_value:
+    #         min_value = value
+
+    lowest_card = 52
     for i, card in enumerate(player.hand):
-        value = value_order.index(card.value)
-        if value < min_value:
-            min_value = value
+        card_value = REV_CARD_TO_NUM[(card.suit, card.value)]
+        if card_value < lowest_card:
+            lowest_card = card_value
+            min_index = i
     
-    return min_value
+    return min_index
 
 def normalize_probabilities(player):
     total = sum(player.card_probabilities.values())
@@ -164,15 +179,15 @@ def zero_below_card(player, card):
     num = REV_CARD_TO_NUM[(suit, val)]
 
 
-    for i in range(num):
-        zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
-
-
-
+    logging.debug(f"The lowest card number is (in number form) {num}")
 
     # for i in range(num):
-    #     player.card_probabilities[i] = 0.0
-    #     logging.debug(f"Setting probability of card {i} to 0")
+        # logging.debug(f"Setting probability of card {i} to 0")
+        # zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
+
+    for i in range(num):
+        player.card_probabilities[i] = 0.0
+        logging.debug(f"Setting probability of card {i} to 0")
     normalize_probabilities(player)
 
 def zero_above_card(player, card):
@@ -181,11 +196,15 @@ def zero_above_card(player, card):
     val = card.value
     num = REV_CARD_TO_NUM[(suit, val)]
 
-    for i in range(num + 1, 52):
-        zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
+    logging.debug(f"The highest card number is (in number form) {num}")
+
     # for i in range(num + 1, 52):
-    #     player.card_probabilities[i] = 0.0
     #     logging.debug(f"Setting probability of card {i} to 0")
+    #     zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
+    
+    for i in range(num + 1, 52):
+        player.card_probabilities[i] = 0.0
+        logging.debug(f"Setting probability of card {i} to 0")
     normalize_probabilities(player)
 
 
@@ -215,17 +234,19 @@ def guessing(player, cards, round):
 
         teammate = {"North": "South", "South": "North", "East": "West", "West": "East"}
 
+        logging.debug(f"Current Player: {player.name}")
+        logging.debug(f"Current Teammate: {teammate[player.name]}")
+        logging.debug(f"The player is examining card: {player.exposed_cards[teammate[player.name]][-1]}")
+        
         last_exposed_card = player.exposed_cards[teammate[player.name]][-1]
 
-        # if even round, guess the highest card
+        # # if even round, guess the highest card
         if round % 2 == 0:
-            # get the last exposed card of teammate
-            # set probablity of card and higher to 0
+            logging.debug(f"Zeroing highest card and above")
             zero_above_card(player, last_exposed_card)
         else:
-            # set probablity of card and lower to 0
+            logging.debug(f"Zeroing below card and above")
             zero_below_card(player, last_exposed_card)
-
 
     choice = np.random.choice(
         list(player.card_probabilities.keys()),
