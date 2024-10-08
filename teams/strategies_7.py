@@ -3,8 +3,6 @@ import random
 import numpy as np
 from CardGame import Card, Deck, Player
 
-# import logger
-
 logging.basicConfig(filename='group7.log', 
                     level=logging.DEBUG,  # Set to DEBUG to capture all messages
                     filemode='w',  # Clear the log file each time the program runs
@@ -84,7 +82,7 @@ def playing(player, deck):
         flag = 1
         return max_first(player, deck)
     else:
-        flag = 0
+        flag = 0 
         return min_first(player, deck)
 
 def max_first(player, deck):
@@ -115,32 +113,6 @@ def max_first(player, deck):
     
     return max_index
 
-# def find_max_value(player, deck):
-#     """
-#     Max Value strategy.
-    
-#     This strategy always plays the highest-value card in the player's hand, regardless of the current card.
-    
-#     Parameters:
-#     player (Player): The current player object.
-#     deck (Deck): The current deck object.
-    
-#     Returns:
-#     int or None: The index of the card to be played, or None if no card can be played.
-#     """
-#     if not player.hand:
-#         return None
-    
-#     value_order = deck.values
-#     max_value = -1
-
-#     for i, card in enumerate(player.hand):
-#         value = value_order.index(card.value)
-#         if value > max_value:
-#             max_value = value
-    
-#     return max_value
-
 def min_first(player, deck):
     """
     Min First strategy.
@@ -167,32 +139,6 @@ def min_first(player, deck):
             min_value = value
     
     return min_value
-
-# def find_min_value(player, deck):
-#     """
-#     Min Value strategy.
-    
-#     This strategy always plays the lowest-value card in the player's hand, regardless of the current card.
-    
-#     Parameters:
-#     player (Player): The current player object.
-#     deck (Deck): The current deck object.
-    
-#     Returns:
-#     int or None: The index of the card to be played, or None if no card can be played.
-#     """
-#     if not player.hand:
-#         return None
-    
-#     value_order = deck.values
-#     min_value = len(value_order)
-    
-#     for i, card in enumerate(player.hand):
-#         value = value_order.index(card.value)
-#         if value < min_value:
-#             min_value = value
-    
-#     return min_value
 
 def normalize_probabilities(player):
     total = sum(player.card_probabilities.values())
@@ -253,6 +199,23 @@ def guessing(player, cards, round):
         previous_guess_indices = [REV_CARD_TO_NUM[(card.suit, card.value)] for card in previous_guesses]
         update_prob_based_on_correct_answers(player, player.card_probabilities, previous_guess_indices, correct_answers)
 
+
+    teammate = {"North": "South", "South": "North", "East": "West", "West": "East"}
+
+    last_exposed_card = player.exposed_cards[teammate[player.name]][-1]
+
+    # if even round, guess the highest card
+    if round % 2 == 0:
+        # get the last exposed card of teammate
+        # set probablity of card and higher to 0
+        zero_above_card(player, last_exposed_card)
+    else:
+        # set probablity of card and lower to 0
+        zero_below_card(player, last_exposed_card)
+
+
+
+
     choice = np.random.choice(
         list(player.card_probabilities.keys()),
         13 - round,
@@ -265,27 +228,6 @@ def guessing(player, cards, round):
         player_guesses[player.name] = {}  # Initialize if not present
 
     player_guesses[player.name][round] = card_choices_obj
-
-
-    # teams = {"North": "South", "South": "North", "East": "West", "West": "East"}
-
-    # # Look at the exposed card of teammate
-
-    # # if we have an even round
-    # if round % 2 == 0:
-    #     # look at the card of the east player
-    #     zero_below_card(player, player.exposed_cards[teams[player.name]][-1])
-    #     logging.debug(f"Player {player.name} is looking at the card of {teams[player.name]}")
-    #     # log the exposed card played
-    #     logging.debug(f"Exposed card played: {player.exposed_cards[teams[player.name]][-1]}")
-    # else:
-    #     # look at the card of the west player
-    #     zero_above_card(player, player.exposed_cards[teams[player.name]][-1])
-    #     logging.debug(f"Player {player.name} is looking at the card of {teams[player.name]} and zeroing above")
-    #     # log the exposed card played
-    #     logging.debug(f"Exposed card played: {player.exposed_cards[teams[player.name]][-1]} and zeroing below")
-
-
 
 
     return card_choices_obj
