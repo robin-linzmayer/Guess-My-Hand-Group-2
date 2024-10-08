@@ -63,7 +63,7 @@ def hash_combination(cards):
     combo_str = ''.join(simpleHand)  
     return zlib.crc32(combo_str.encode()) % (5040)
 
-def create_hash_map(cards):
+def create_hash_map(cards, index_to_care_about):
     sorted_cards = sorted(cards, key=get_card_value)
     
     combos = combinations(sorted_cards, 13)
@@ -74,7 +74,8 @@ def create_hash_map(cards):
     for combo in tqdm(combos, desc="Hashing combinations", unit="combo", total=totalCombos):
         # sorted_combo = sorted(combo, key=get_card_value)
         hash_value = hash_combination(combo)
-        hash_map[hash_value].append(combo)
+        if hash_value == index_to_care_about:
+            hash_map[hash_value].append(combo)
     
     return hash_map
 
@@ -122,9 +123,11 @@ def guessing(player, cards, round):
     if round == 7: # only create map on round 7
         cards_copy = cards.copy()
         viableCards = get_viable_cards(cards_copy, player)
-        hash_map[player.name] = create_hash_map(viableCards)
-        sorted_first_7_cards_of_team_mate[player.name] = get_tuple_representation_of_cards(sorted(teamMatesPlayedCards, key=get_card_value))
         hash_index_to_search[player.name] = get_rank_from_order(teamMatesPlayedCards)
+
+        hash_map[player.name] = create_hash_map(viableCards, index_to_care_about=hash_index_to_search[player.name])
+        sorted_first_7_cards_of_team_mate[player.name] = get_tuple_representation_of_cards(sorted(teamMatesPlayedCards, key=get_card_value))
+        # hash_index_to_search[player.name] = get_rank_from_order(teamMatesPlayedCards)
         print(f"Player: {player.name} Received: {hash_index_to_search[player.name]}")
 
     if player.name in hash_index_to_search:
