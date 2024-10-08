@@ -102,15 +102,7 @@ def max_first(player, deck):
         return None
     
     value_order = deck.values
-    max_index = 0
-    max_value = -1
-
-    # for i, card in enumerate(player.hand):
-    #     value = value_order.index(card.value)
-    #     if value > max_value:
-    #         max_value = value
-    #         max_index = i
-    
+    max_index = 0 
 
     highest_card = -1
     for i, card in enumerate(player.hand):
@@ -136,15 +128,6 @@ def min_first(player, deck):
     """
     if not player.hand:
         return None
-    
-    # value_order = deck.values
-    # min_index = 0
-    # min_value = len(value_order)
-    
-    # for i, card in enumerate(player.hand):
-    #     value = value_order.index(card.value)
-    #     if value < min_value:
-    #         min_value = value
 
     lowest_card = 52
     for i, card in enumerate(player.hand):
@@ -178,12 +161,7 @@ def zero_below_card(player, card):
     val = card.value
     num = REV_CARD_TO_NUM[(suit, val)]
 
-
     logging.debug(f"The lowest card number is (in number form) {num}")
-
-    # for i in range(num):
-        # logging.debug(f"Setting probability of card {i} to 0")
-        # zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
 
     for i in range(num):
         player.card_probabilities[i] = 0.0
@@ -197,10 +175,6 @@ def zero_above_card(player, card):
     num = REV_CARD_TO_NUM[(suit, val)]
 
     logging.debug(f"The highest card number is (in number form) {num}")
-
-    # for i in range(num + 1, 52):
-    #     logging.debug(f"Setting probability of card {i} to 0")
-    #     zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
     
     for i in range(num + 1, 52):
         player.card_probabilities[i] = 0.0
@@ -236,7 +210,7 @@ def guessing(player, cards, round):
 
         logging.debug(f"Current Player: {player.name}")
         logging.debug(f"Current Teammate: {teammate[player.name]}")
-        logging.debug(f"The player is examining card: {player.exposed_cards[teammate[player.name]][-1]}")
+        logging.debug(f"The player, {player.name}, is examining card: {player.exposed_cards[teammate[player.name]][-1]}")
         
         last_exposed_card = player.exposed_cards[teammate[player.name]][-1]
 
@@ -247,6 +221,9 @@ def guessing(player, cards, round):
         else:
             logging.debug(f"Zeroing below card and above")
             zero_below_card(player, last_exposed_card)
+
+        logging.debug(f"Summary of Player: {player.name}")
+        logging.debug(player.card_probabilities)
 
     choice = np.random.choice(
         list(player.card_probabilities.keys()),
