@@ -8,6 +8,8 @@ logging.basicConfig(filename='group7.log',
                     filemode='w',  # Clear the log file each time the program runs
                     format='%(message)s',)  # Only the message will be logged
 
+logging.disable(logging.CRITICAL)
+
 """
 Add the following lines of code to Card Game for the code to work:
 
@@ -224,6 +226,9 @@ def guessing(player, cards, round):
 
         logging.debug(f"Summary of Player: {player.name}")
         logging.debug(player.card_probabilities)
+        # sum of probabilities should be 1
+        logging.debug(f"Total probability: {sum(player.card_probabilities.values())}")
+            
 
     choice = np.random.choice(
         list(player.card_probabilities.keys()),
