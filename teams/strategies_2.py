@@ -24,10 +24,6 @@ VALUE_ORDER = {
     "A": 8,
 }
 
-# Global variables that will be split on player.name
-deck_state_dict = {}
-guess_history_dict = {}
-
 def playing(player, deck):
     """
     Playing strategy goes here (what card will the player expose to their partner)
@@ -133,6 +129,7 @@ def guessing(player, cards, round):
     # Update probability of possible cards
     p_cards = get_card_prob(player, s_cards, round)
 
+    # Sample cards based on their computed probabilities
     return np.random.choice(s_cards, p=p_cards, size=13 - round, replace=False)
 
 
