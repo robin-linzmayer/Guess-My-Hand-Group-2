@@ -3,5 +3,6 @@ teams/__pycache__/
 bin/
 project2/pyvenv.cfg
 .gitignore
+bin/
 lib/
-.gitignore
+group7.log

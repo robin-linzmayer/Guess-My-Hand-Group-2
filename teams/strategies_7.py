@@ -1,6 +1,14 @@
+import logging
 import random
 import numpy as np
 from CardGame import Card, Deck, Player
+
+logging.basicConfig(filename='group7.log', 
+                    level=logging.DEBUG,  # Set to DEBUG to capture all messages
+                    filemode='w',  # Clear the log file each time the program runs
+                    format='%(message)s',)  # Only the message will be logged
+
+logging.disable(logging.CRITICAL)
 
 """
 Add the following lines of code to Card Game for the code to work:
@@ -67,23 +75,70 @@ def normalize(probability_dict):
             probability_dict[card] /= total_prob
 
 def playing(player, deck):
+   
+    turn = len(player.played_cards) + 1
+
+    flag =  (turn % 2)
+
+    if flag == 0:
+        flag = 1
+        return max_first(player, deck)
+    else:
+        flag = 0 
+        return min_first(player, deck)
+
+def max_first(player, deck):
     """
-    Max First strategy
+    Max First strategy.
+    
+    This strategy always plays the highest-value card in the player's hand.
+    
+    Parameters:
+    player (Player): The current player object.
+    deck (Deck): The current deck object.
+    
+    Returns:
+    int or None: The index of the card to be played, or None if no card can be played.
     """
     if not player.hand:
         return None
     
     value_order = deck.values
-    max_index = 0
-    max_value = -1
+    max_index = 0 
 
+    highest_card = -1
     for i, card in enumerate(player.hand):
-        value = value_order.index(card.value)
-        if value > max_value:
-            max_value = value
+        card_value = REV_CARD_TO_NUM[(card.suit, card.value)]
+        if card_value > highest_card:
+            highest_card = card_value
             max_index = i
     
     return max_index
+
+def min_first(player, deck):
+    """
+    Min First strategy.
+    
+    This strategy always plays the lowest-value card in the player's hand.
+    
+    Parameters:
+    player (Player): The current player object.
+    deck (Deck): The current deck object.
+    
+    Returns:
+    int or None: The index of the card to be played, or None if no card can be played.
+    """
+    if not player.hand:
+        return None
+
+    lowest_card = 52
+    for i, card in enumerate(player.hand):
+        card_value = REV_CARD_TO_NUM[(card.suit, card.value)]
+        if card_value < lowest_card:
+            lowest_card = card_value
+            min_index = i
+    
+    return min_index
 
 def normalize_probabilities(player):
     total = sum(player.card_probabilities.values())
@@ -100,6 +155,32 @@ def zero_probabilities(player, cards):
         val = card.value
         num = REV_CARD_TO_NUM[(suit, val)]
         player.card_probabilities[num] = 0.0
+    normalize_probabilities(player)
+
+def zero_below_card(player, card):
+    # for each card below the card, set probability to 0
+    suit = card.suit
+    val = card.value
+    num = REV_CARD_TO_NUM[(suit, val)]
+
+    logging.debug(f"The lowest card number is (in number form) {num}")
+
+    for i in range(num):
+        player.card_probabilities[i] = 0.0
+        logging.debug(f"Setting probability of card {i} to 0")
+    normalize_probabilities(player)
+
+def zero_above_card(player, card):
+    # for each card above the card, set probability to 0
+    suit = card.suit
+    val = card.value
+    num = REV_CARD_TO_NUM[(suit, val)]
+
+    logging.debug(f"The highest card number is (in number form) {num}")
+    
+    for i in range(num + 1, 52):
+        player.card_probabilities[i] = 0.0
+        logging.debug(f"Setting probability of card {i} to 0")
     normalize_probabilities(player)
 
 
@@ -126,6 +207,29 @@ def guessing(player, cards, round):
         previous_guess_indices = [REV_CARD_TO_NUM[(card.suit, card.value)] for card in previous_guesses]
         update_prob_based_on_correct_answers(player, player.card_probabilities, previous_guess_indices, correct_answers)
 
+
+        teammate = {"North": "South", "South": "North", "East": "West", "West": "East"}
+
+        logging.debug(f"Current Player: {player.name}")
+        logging.debug(f"Current Teammate: {teammate[player.name]}")
+        logging.debug(f"The player, {player.name}, is examining card: {player.exposed_cards[teammate[player.name]][-1]}")
+        
+        last_exposed_card = player.exposed_cards[teammate[player.name]][-1]
+
+        # # if even round, guess the highest card
+        if round % 2 == 0:
+            logging.debug(f"Zeroing highest card and above")
+            zero_above_card(player, last_exposed_card)
+        else:
+            logging.debug(f"Zeroing below card and above")
+            zero_below_card(player, last_exposed_card)
+
+        logging.debug(f"Summary of Player: {player.name}")
+        logging.debug(player.card_probabilities)
+        # sum of probabilities should be 1
+        logging.debug(f"Total probability: {sum(player.card_probabilities.values())}")
+            
+
     choice = np.random.choice(
         list(player.card_probabilities.keys()),
         13 - round,
@@ -138,5 +242,6 @@ def guessing(player, cards, round):
         player_guesses[player.name] = {}  # Initialize if not present
 
     player_guesses[player.name][round] = card_choices_obj
+
 
     return card_choices_obj
