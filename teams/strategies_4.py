@@ -1,99 +1,158 @@
 import random
+from itertools import chain
 from collections import defaultdict
+from CardGame import Player, Deck, Card
+import math
+import numpy as np
 
-Pairs ={"Hearts": "Spades", "Spades": "Hearts", "Clubs": "Diamonds", "Diamonds": "Clubs"}
-PlayerPairs = {"North": "South", "South": "North", "East": "West", "West": "East"}
-max_suit_of_partner = None
-min_suit_of_partner = None
-max_suit_cards = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-max_suit_of_partner1 = None
-min_suit_of_partner1 = None
-max_suit_cards1 = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+PARTNERS = {
+    "North": "South",
+    "East": "West",
+    "South": "North",
+    "West": "East",
+}
 
+SUIT_TO_NUM = {"Hearts": 0, "Spades": 13, "Diamonds": 26, "Clubs": 39}
 
-def playing(player, deck):
-    """
-    Just return the opposite of maximum frequency suit. If opposite is not there, return min suit
-    """
-    if not player.hand:
-        return None
-    
-    freq = defaultdict(lambda:0)
-    
-    for card in player.hand:
-        freq[card.suit]+=1
-    
-    maxSuit =  max(freq, key=freq.get)
-    oppSuit = Pairs[maxSuit]
-    for i,card in enumerate(player.hand):
-        if card.suit == oppSuit:
-            return i
+VAL_TO_NUM = {
+    "A": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    "J": 11,
+    "Q": 12,
+    "K": 13,
+}
 
-    # What if no opposite suit? Rn return min suit
-    minSuit = min(freq, key=freq.get)
-    for i,card in enumerate(player.hand):
-        if card.suit == minSuit:
-            return i
+NUM_TO_SUIT = {v: k for k, v in SUIT_TO_NUM.items()}
+NUM_TO_VAL = {v: k for k, v in VAL_TO_NUM.items()}
+MIN_SUIT = {"North":-1, "South":-1, "East": -1, "West":-1}
 
+def generate_permutation(perm_size, cards, seed):
+    """Generates a permutation dictionary, each card points to one permutation"""
+    perms = {}
+    for i in cards:
+        random.seed(seed)
+        perms[i] = random.sample(cards, perm_size)
+    return perms
 
-def guessing(player, cards, round):
-    global max_suit_of_partner1
-    global min_suit_of_partner1
-    global max_suit_cards1
-    global max_suit_of_partner
-    global min_suit_of_partner
-    global max_suit_cards
-
-    exposedCards = player.exposed_cards[PlayerPairs[player.name]]
-    if player.name == "North" or player.name == "East":
-        max_suit_of_partner_local = max_suit_of_partner1
-        min_suit_of_partner_local = min_suit_of_partner1
-        max_suit_cards_local = max_suit_cards1
-    else:
-        max_suit_of_partner_local = max_suit_of_partner
-        min_suit_of_partner_local = min_suit_of_partner
-        max_suit_cards_local = max_suit_cards
-
-    if round == 1:
-        max_suit_of_partner_local = Pairs[exposedCards[0].suit]     
-    elif round == 2:
-        if player.cVals[-1] < 5: #Worst case 0H 5S 3C 4D 
-            # Suit guess was wrong. Why? Maybe opposite did not exist [No H]
-            min_suit_of_partner_local = max_suit_of_partner_local
-            all_suits = set(["Hearts", "Clubs", "Spades", "Diamonds"])
-            remove_suit = set([min_suit_of_partner_local, Pairs[min_suit_of_partner_local]])
-            max_suit_of_partner_local = random.choice(list(all_suits - remove_suit)) #Either H or S
-    elif round == 3:
-        if player.cVals[-2] < 5 and player.cVals[-1] < 5:  #0 5 2 4 
-            max_suit_of_partner_local = Pairs[max_suit_of_partner_local]
-
+def get_unguessed_cards(player):
+    suits = ["Hearts", "Diamonds", "Clubs", "Spades"] 
+    values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+    allcards = [Card(suit, value) for suit in suits for value in values]
+    # All possible cards except exposed cards
+    unguessedCards = []
+    for card in allcards:
+        if card not in set(chain.from_iterable(player.exposed_cards.values())) and card not in set(player.played_cards):
+            unguessedCards.append(card)
+    # Add cards exposed in this round as partner might not have had that information during exposing
     for p in player.exposed_cards:
-        for card in player.exposed_cards[p]:
-            if card.suit == max_suit_of_partner_local and card.value in max_suit_cards_local:
-                max_suit_cards_local.remove(card.value)
+        if player.exposed_cards[p]:
+            unguessedCards.append(player.exposed_cards[p][-1])
+    return unguessedCards
 
-    # What if we have only 5 choices in max suit cards but we need to guess 6 cards?
-    if len(max_suit_cards_local) >= 13-round:
-        guesses = random.sample(max_suit_cards_local, 13-round) 
-    else:
-        guesses =  max_suit_cards_local 
-        guesses+= random.choices(max_suit_cards_local, k=13-round-len(max_suit_cards_local)) #Duplicates but we don't care
+
+def playing(player: Player, deck: Deck):
+    round = len(player.played_cards) + 1
+    unguessedCards = get_unguessed_cards(player)
+    permutations = generate_permutation(13-round, unguessedCards, 7)
+
+    # Play min suit
+    freq = defaultdict(int)
+    for card in player.hand:
+            freq[card.suit]+=1
+        
+    minSuit = min(freq, key=freq.get)
+    # The only cases where this will throw us off 13-0-0-0 [Veryyy unlikely]
+    # Other cases where player will lose points > 3 [5-4-4-0, 9-4-0-0, 8-5-0-0, 7-6-0-0]
+    # Or always we just sacrifice 1,2 or 3 max points but we get to eliminate 13 cards entirely
     
-    # Right now set intersection in game gui does it with object ref not value so had to use cards passed - ineffecient 
-    returncards=[]
-    for guess in guesses:
-        for card in cards:
-            if card.suit == max_suit_of_partner_local and card.value == guess:
-                returncards.append(card)
-                break
+    if round == 1:
+        minSuitCards = [card for card in player.hand if card.suit == minSuit]
+        maxCard = max(minSuitCards, key=lambda card: VAL_TO_NUM[card.value])
+        return player.hand.index(maxCard)
 
-    if player.name == "North" or player.name == "East":
-        max_suit_of_partner1 = max_suit_of_partner_local
-        min_suit_of_partner1 = min_suit_of_partner_local
-        max_suit_cards1 = max_suit_cards_local
+    # Find most similar permutations to players cards
+    card_index = 0
+    max_sim = 0
+    for i, k in enumerate(player.hand):
+        perms = permutations[k]
+        sim = len((set(player.hand) & set(perms)) - {k})
+        if sim > max_sim:
+            card_index = i
+            max_sim = sim
+
+    return card_index    
+
+
+
+def guessing(player: Player, cards, round):
+    print("\n Player: ", player.name)
+    unguessed_cards = get_unguessed_cards(player)
+    permutations = generate_permutation(13-round, unguessed_cards, 7)
+    remaining_cards = []
+    for card in cards:
+        if card not in set(chain.from_iterable(player.exposed_cards.values())) and card not in set(player.hand) and card not in set(player.played_cards):
+            remaining_cards.append(card)
+    print("Remaining cards for player ", player.name, " : ", remaining_cards)
+    
+    if remaining_cards == []:
+        print("0 remaining at round", round)
+        return random.sample(cards, 13-round)
+    
+    if round == 1:
+        suit = player.exposed_cards[PARTNERS[player.name]][-1].suit
+        MIN_SUIT[player.name] = suit
+        # Eliminate suit of card played
+        remaining_cards = [card for card in remaining_cards if card.suit != suit]
+
+        # Now we have total max of 26 cards, the most likely suit distribution is 4432
+        # Guess 4,4,4 from remaining cards - [TODO: Can I improve using my suit distribution?]
+        suit_groups = defaultdict(list)
+        for card in remaining_cards:
+            suit_groups[card.suit].append(card)
+
+        # Select up to 4 cards. I think there will always be atleast 4 left
+        selected_cards = [card for suit, cards in suit_groups.items() for card in random.sample(cards, min(4, len(cards)))]
+        selected_cards = selected_cards[:12]
+        return selected_cards
+    
     else:
-        max_suit_of_partner = max_suit_of_partner_local
-        min_suit_of_partner = min_suit_of_partner_local
-        max_suit_cards = max_suit_cards_local
+        remaining_cards = [card for card in remaining_cards if card.suit != MIN_SUIT[player.name]]
+        prob = {card: (1/len(remaining_cards)) for card in remaining_cards}
 
-    return returncards
+        for i in range(round-1):
+            guess = player.guesses[i]
+            c = player.cVals[i]
+            remove_prob = []
+            for card in prob:
+                if card in guess:
+                    if c==0:
+                        remove_prob.append(card)
+                    else:
+                        prob[card]*= (c/len(guess))
+                else:
+                    if len(guess)-c!=0:
+                        prob[card]*= (len(guess)-c)/len(guess)
+            for card in remove_prob:
+                del prob[card]
+        mostSimP = permutations[player.exposed_cards[PARTNERS[player.name]][-1]]
+        print("Most Similar Permutation", mostSimP)
+
+        boost_factor = 2
+        for val in mostSimP:
+            if val in prob:
+                prob[val]*=boost_factor
+
+        total_weight = sum(prob.values())
+        normalized_weights = [val/total_weight for val in prob.values()]
+        np.random.seed(7)
+        random_indices = np.random.choice(np.arange(len(prob.keys())), size=13-round, replace=False, p=normalized_weights)
+        sampled_cards = [list(prob.keys())[i] for i in random_indices]
+        return(sampled_cards)

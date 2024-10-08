@@ -39,7 +39,8 @@ def guessing(player, cards, round):
             del cp[card_to_val(exposed_card)]
 
     for played_card in player.played_cards:
-        del cp[card_to_val(played_card)]
+        if card_to_val(played_card) in cp:
+            del cp[card_to_val(played_card)]
 
     partner_name = partner(player.name)
     for i, card in enumerate(player.exposed_cards[partner_name]):
