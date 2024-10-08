@@ -36,20 +36,20 @@ def guessing(player, cards, round):
     deck = get_deck_of_cards()
     cards_to_indices, indices_to_cards = create_card_to_index_mapping(random_seed, deck, True)
 
-    all_cards_exposed = []
+    all_other_cards_exposed = []
     partner_cards_exposed = []
     for player_name, cards in player.exposed_cards.items():
         if player_name == partner:
             partner_cards_exposed += cards
-       
-        all_cards_exposed += cards
+        else:
+            all_other_cards_exposed += cards
     
     # Delete cards of your own
     for own_card in list(set(player.hand)):
         del card_probs_by_index[cards_to_indices[own_card]]
     
     # Delete cards which have been previously exposed
-    for exposed_card in all_cards_exposed:
+    for exposed_card in (set(partner_cards_exposed) | set(all_other_cards_exposed)):
         del card_probs_by_index[cards_to_indices[exposed_card]]
 
     # Delete cards based on partner's min/max boundary information
@@ -64,7 +64,7 @@ def guessing(player, cards, round):
             del card_probs_by_index[index]
 
     # Update card probabilities based on previous guesses
-    card_probs_by_index = update_probs_from_guesses(card_probs_by_index, player, all_cards_exposed, cards_to_indices)
+    card_probs_by_index = update_probs_from_guesses(card_probs_by_index, player, partner_cards_exposed, all_other_cards_exposed, cards_to_indices)
 
     # Determine your guesses by finding n cards with highest probabilities
     n = 13 - round
@@ -78,12 +78,14 @@ def guessing(player, cards, round):
 
     return card_guesses
 
-def update_probs_from_guesses(card_probs_by_index, player, all_cards_exposed, cards_to_indices):
+def update_probs_from_guesses(card_probs_by_index, player, partner_cards_exposed, all_cards_exposed, cards_to_indices):
     """
     Adjusts the probabilities of remaining cards based on feedback from previous guesses.
     """
     
     for guesses, c_value in zip(player.guesses, player.cVals):
+        
+        
         continue
 
         # exposed_in_guess = [ctuple for ctuple in ctuple_guess if ctuple in partner_ctuples_exposed]
