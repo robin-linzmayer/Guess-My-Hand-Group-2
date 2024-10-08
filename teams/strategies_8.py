@@ -6,7 +6,6 @@ import math
 import zlib
 from itertools import combinations
 
-deck = Deck()
 
 def get_card_value(card):
     f"{card.value}{card.suit[0]}"
@@ -59,22 +58,25 @@ def get_rank_from_order(played_order):
     return rank + 1  # Weird hack Need to look at the ranks of the encoding and decoding. I think we might be off by 1
 
 def hash_combination(cards):
-    simpleHand = [f"{card.value}{card.suit[0]}" for card in cards]
+    simpleHand = [f"{card.value}{card.suit[0]}" for card in cards] 
+    # return card_hashing.hash_combination_cpp(simpleHand)
     combo_str = ''.join(simpleHand)  
     return zlib.crc32(combo_str.encode()) % (5040)
 
 def create_hash_map(cards):
-    combos = combinations(cards, 13)
+    sorted_cards = sorted(cards, key=get_card_value)
+    
+    combos = combinations(sorted_cards, 13)
+    # combos = combinations(cards, 13)
     totalCombos = math.comb(len(cards), 13)
     hash_map = {i: [] for i in range(5040)} 
     
     for combo in tqdm(combos, desc="Hashing combinations", unit="combo", total=totalCombos):
-        sorted_combo = sorted(combo, key=get_card_value)
-        hash_value = hash_combination(sorted_combo)
-        hash_map[hash_value].append(sorted_combo)
+        # sorted_combo = sorted(combo, key=get_card_value)
+        hash_value = hash_combination(combo)
+        hash_map[hash_value].append(combo)
     
     return hash_map
-
 
 
 ourHandHash = {}
@@ -90,7 +92,9 @@ def playing(player: Player, deck: Deck):
         # simpleHand = [f"{card.value}{card.suit[0]}" for card in player.hand]
         ourHandSorted = sorted(player.hand, key=get_card_value)
         ourHandHash[player.name] = hash_combination(ourHandSorted)
-        first_7_cards_to_play[player.name] = get_card_order(player.hand[0:7], ourHandHash[player.name]) # Should prob use sorted hand here
+        print(f"Player: {player.name} Sending: {ourHandHash[player.name]}")
+
+        first_7_cards_to_play[player.name] = get_card_order(ourHandSorted[0:7], ourHandHash[player.name]) # Should prob use sorted hand here
     if turn <= 7:
         if first_7_cards_to_play[player.name]:
             card_to_play = first_7_cards_to_play[player.name].pop(0) # get first element in list
@@ -104,10 +108,14 @@ def playing(player: Player, deck: Deck):
 
 hash_index_to_search = {}
 hash_map = {}
+sorted_first_7_cards_of_team_mate = {}
+card_probabilities = {}
+guesses = {}
 def guessing(player, cards, round):
     global hash_map
     global hash_index_to_search
     global ourHandHash
+    global sorted_first_7_cards_of_team_mate
     
     teamMatesPlayedCards = get_team_mates_exposed_cards(player)
     
@@ -115,22 +123,90 @@ def guessing(player, cards, round):
         cards_copy = cards.copy()
         viableCards = get_viable_cards(cards_copy, player)
         hash_map[player.name] = create_hash_map(viableCards)
+        sorted_first_7_cards_of_team_mate[player.name] = get_tuple_representation_of_cards(sorted(teamMatesPlayedCards, key=get_card_value))
         hash_index_to_search[player.name] = get_rank_from_order(teamMatesPlayedCards)
+        print(f"Player: {player.name} Received: {hash_index_to_search[player.name]}")
+
     if player.name in hash_index_to_search:
         personal_hash_map = hash_map[player.name]
         personal_hash_index = hash_index_to_search[player.name]
 
         # Can do better here by also making sure the cards played by the other team are not in any of the options
+        print(sorted_first_7_cards_of_team_mate[player.name])
         options = [combo for combo in personal_hash_map[personal_hash_index] 
-                   if set(teamMatesPlayedCards).issubset(combo) and set(combo).issubset(cards)
-                   and not set(get_other_teams_exposed_cards(player)).intersection(set(combo))]
+                   if set(teamMatesPlayedCards).issubset(combo) 
+                   and set(combo).issubset(cards) 
+                   and not set(get_other_teams_exposed_cards(player)).intersection(set(combo)) # Make sure the other team has not played any of these cards
+                   and get_tuple_representation_of_cards(combo[0:7]) == sorted_first_7_cards_of_team_mate[player.name] # Check if first 7 cards are the same
+                   ]
+        
         print(f"Number of Options: {len(options)}")
         chosen = random.choice(options)
         return list(set(chosen) - set(teamMatesPlayedCards))
     else:
-        viableCardsMinusTeamMatePlayed = list(set(get_viable_cards(cards, player)) - set(teamMatesPlayedCards))
-        return random.sample(viableCardsMinusTeamMatePlayed, 13 - round)
+        if round == 1:
+            init_card_probs(cards, card_probabilities, player)
+            guesses[player.name] = []
+        
+        update_card_probs(cards, card_probabilities, player)
 
+        print('card probs', len(card_probabilities[player.name]))
+        for card in card_probabilities[player.name]:
+            print(f'{card}: {card_probabilities[player.name][card]}, number of times guessed: {len([guess for guess in guesses[player.name] if card in guess])}')
+        
+        guess = random.choices(list(card_probabilities[player.name].keys()), list(card_probabilities[player.name].values()), k=13 - round)
+        guesses[player.name].append(guess)
+        return guess
+    
+def init_card_probs(cards, card_probabilities, player):
+    # set up dict
+    card_probabilities[player.name] = {}
+    for card in cards:
+        card_probabilities[player.name][card] = 1
+
+
+def update_card_probs(cards, card_probabilities, player):
+    # remove the cards that were played
+    for card in set(cards) - set(get_viable_cards(cards, player)):
+        if card in card_probabilities[player.name]:
+            del card_probabilities[player.name][card]
+
+    # remove partner's card
+    partner_card = get_team_mates_exposed_cards(player)[-1]
+    del card_probabilities[player.name][partner_card]
+
+    # first round only
+    if len(guesses[player.name]) == 0:
+        return
+    
+    # remove cards in last guess that were played
+    last_guess = []
+    for card in guesses[player.name][-1]:
+        if card in card_probabilities[player.name]:
+            last_guess.append(card)
+
+    # count how many correct guesses 'remain' in that guess
+    played_guessed_right = set(guesses[player.name][-1]).intersection(set(get_team_mates_exposed_cards(player)))
+    last_cval = player.cVals[-1] - len(played_guessed_right)
+
+    # update probabilities of cards in last guess
+    for card in last_guess:
+        if card in card_probabilities[player.name]:
+            card_probabilities[player.name][card] = last_cval / len(last_guess)
+
+    # update probabilities of cards not in last guess
+    for card in set(cards) - set(last_guess):
+        if card in card_probabilities[player.name]:
+            card_probabilities[player.name][card] = (len(guesses[player.name][-1]) - 1 - last_cval) / (len(card_probabilities[player.name]) - len(last_guess))
+
+    # # update probabilities of remaining valid cards
+    # for card in get_viable_cards(cards, player):
+    #     if card in card_probabilities[player.name]:
+    #         card_probabilities[player.name][card] = 1 / len(card_probabilities[player.name])
+
+
+def get_tuple_representation_of_cards(cards):
+    return [(card.value, card.suit) for card in cards]
 def get_team_mates_exposed_cards(player) -> list:
     if player.name == "East":
         return player.exposed_cards["West"]
