@@ -162,18 +162,31 @@ def zero_below_card(player, card):
     suit = card.suit
     val = card.value
     num = REV_CARD_TO_NUM[(suit, val)]
+
+
     for i in range(num):
-        player.card_probabilities[i] = 0.0
-        logging.debug(f"Setting probability of card {i} to 0")
+        zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
+
+
+
+
+    # for i in range(num):
+    #     player.card_probabilities[i] = 0.0
+    #     logging.debug(f"Setting probability of card {i} to 0")
+    normalize_probabilities(player)
 
 def zero_above_card(player, card):
     # for each card above the card, set probability to 0
     suit = card.suit
     val = card.value
     num = REV_CARD_TO_NUM[(suit, val)]
+
     for i in range(num + 1, 52):
-        player.card_probabilities[i] = 0.0
-        logging.debug(f"Setting probability of card {i} to 0")
+        zero_probabilities(player, [Card(SUITS[i // 13], VALUES[i % 13])])
+    # for i in range(num + 1, 52):
+    #     player.card_probabilities[i] = 0.0
+    #     logging.debug(f"Setting probability of card {i} to 0")
+    normalize_probabilities(player)
 
 
 def guessing(player, cards, round):
@@ -200,20 +213,18 @@ def guessing(player, cards, round):
         update_prob_based_on_correct_answers(player, player.card_probabilities, previous_guess_indices, correct_answers)
 
 
-    teammate = {"North": "South", "South": "North", "East": "West", "West": "East"}
+        teammate = {"North": "South", "South": "North", "East": "West", "West": "East"}
 
-    last_exposed_card = player.exposed_cards[teammate[player.name]][-1]
+        last_exposed_card = player.exposed_cards[teammate[player.name]][-1]
 
-    # if even round, guess the highest card
-    if round % 2 == 0:
-        # get the last exposed card of teammate
-        # set probablity of card and higher to 0
-        zero_above_card(player, last_exposed_card)
-    else:
-        # set probablity of card and lower to 0
-        zero_below_card(player, last_exposed_card)
-
-
+        # if even round, guess the highest card
+        if round % 2 == 0:
+            # get the last exposed card of teammate
+            # set probablity of card and higher to 0
+            zero_above_card(player, last_exposed_card)
+        else:
+            # set probablity of card and lower to 0
+            zero_below_card(player, last_exposed_card)
 
 
     choice = np.random.choice(
