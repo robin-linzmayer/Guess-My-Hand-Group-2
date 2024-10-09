@@ -86,6 +86,8 @@ player_guesses = {
     'West' : []
 }
 
+exposed_cards = []
+
 # Use to get anti-suit
 # anti_suits  = {
 #     "Spades" : "Diamonds",
@@ -99,19 +101,33 @@ player_guesses = {
 def check_possible(card, player):
     return (card not in player.hand) and (card not in [card for cards in player.exposed_cards.values() for card in cards])
 
-def shuffle(player, deck, seed):
-    exposed_cards = [card for cards in player.exposed_cards.values() for card in cards]
-    left_cards = list(set(deck.cards) - set(exposed_cards))
-    original_cards = left_cards.copy()
-    
-    # Shuffle left_cards using the provided seed for consistency
+def shuffle(player):
+    deck = Deck()
+
+    #exclude the cards that are exposed in this round
+    exposed_now = len(exposed_cards) % 4
+    if exposed_now != 0:
+        # Remove the excess elements from the end
+        prev_exposed_cards = exposed_cards[:-exposed_now]
+    else:
+        prev_exposed_cards = exposed_cards
+
+    remaining_cards = list(set(deck.cards) - set(prev_exposed_cards))
+
+    # Shuffle remaining_cards using the provided seed for consistency
+    seed = len(remaining_cards)
     random.seed(seed)
-    random.shuffle(left_cards)
+    random.shuffle(remaining_cards)
+
+    group_len = len(remaining_cards) // 4
+
+    shuffled_dict = {}
     
-    # TODO
-    mapping = 0
+    for i in range(4):
+        start_index = i * group_len
+        shuffled_dict[i + 1] = remaining_cards[start_index:start_index + group_len]
     
-    return mapping
+    return shuffled_dict
 
 # Converts a card to the index in card_probability
 # def card_to_index (suit, val):
@@ -200,6 +216,15 @@ def playing(player, deck):
     if not player.hand:
         return None
     
+    for cards in player.exposed_cards.values():
+        for card in cards:
+            if card not in exposed_cards:
+                exposed_cards.append(card)
+    
+    # Create dictionary for shuffled deck
+    shuffled_dict = shuffle(player)
+    print(f"Shuffled deck: {shuffled_dict}")
+
     hand = defaultdict(list)
     for card in player.hand:
         hand[card.suit].append(card.value)
