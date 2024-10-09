@@ -108,9 +108,9 @@ def get_card_prob(player, s_cards, round):
         print(f"cval: {C}")
 
         # There are cases where the previous guesses have had cards eliminated to the cvalue given is higher than the number of cards that are possible to include in our guess.
-        if C > G or T <= P:
+        if C >= G or T <= P:
             prob_guessed_card = 1
-            prob_not_guessed_card = 0
+            prob_not_guessed_card = 0.001
             total_prob = prob_guessed_card * P
         else:
             prob_guessed_card = C / G  # Probability for each guessed card
