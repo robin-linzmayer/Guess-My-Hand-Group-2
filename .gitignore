@@ -6,3 +6,5 @@ project2/pyvenv.cfg
 bin/
 lib/
 group7.log
+log-results/*
+!log-results/team0-ewGuesses_log.txt

@@ -3,11 +3,18 @@ import random
 import argparse
 import importlib.util
 from tqdm import tqdm
-import sys
 from copy import copy
 from CardGame import Card, Deck, Player
+import numpy as np
+import logging
+import functools
+import io
+import sys
+from contextlib import redirect_stdout
 from player_strategies import NorthSouthStrategy, EastWestStrategy
 from guessing_functions import NorthSouthGuess, EastWestGuess
+
+
 
 class Game:
     def __init__(self, master, seed=42):
@@ -238,9 +245,41 @@ def import_class_from_file(folder, file_name, class_name):
     spec.loader.exec_module(module)
     return getattr(module, class_name)
 
+def setup_logger(flag):
+    logger = logging.getLogger(flag)
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(f"{flag}_log.txt")
+    fh.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    return logger
+
+def log_output(flag):
+    logger = setup_logger(flag)
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            original_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            try:
+                result = func(*args, **kwargs)
+                output = sys.stdout.getvalue()
+                if output:
+                    logger.info(f"Function {func.__name__} output:\n{output}")
+                return result
+            finally:
+                sys.stdout = original_stdout
+        return wrapper
+    return decorator
+
+def create_logged_function(func, flag):
+    return log_output(flag)(func)
+
+
 def run_game_without_gui(seed):
     deck = Deck(seed)
-    print("Seed: ", seed)
+    # print("Seed: ", seed)
     players = [
         Player("North", NorthSouthStrategy),
         Player("East", EastWestStrategy),
@@ -314,7 +353,6 @@ def run_game_without_gui(seed):
         ew_score += cEast + cWest
         
         round += 1
-    print(f"NS Score-{ns_score} EW Score-{ew_score}")
     del deck, players
     return {"NS": ns_score, "EW": ew_score}
 
@@ -340,6 +378,7 @@ if __name__ == "__main__":
         except:
             print("North South Strategy import failed. Using the default strategy")
             pass
+        NorthSouthStrategy = create_logged_function(NorthSouthStrategy, f"./log-results/team{args.nsStrategy}-nsStrategy")
 
     if args.ewStrategy in range(0, 11):
         file_name = f"strategies_{args.ewStrategy}"
@@ -349,6 +388,7 @@ if __name__ == "__main__":
         except:
             print("East West Strategy import failed. Using the default strategy")
             pass
+        EastWestStrategy = create_logged_function(EastWestStrategy, f"./log-results/team{args.ewStrategy}-ewStrategy")
 
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
@@ -359,6 +399,8 @@ if __name__ == "__main__":
             print("North South Guesses import failed. Using the default strategy")
             pass
 
+        NorthSouthGuess = create_logged_function(NorthSouthGuess, f"./log-results/team{args.nsGuesses}-nsGuesses")
+
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
         class_name = "guessing"
@@ -368,24 +410,31 @@ if __name__ == "__main__":
             print("East West guesses import failed. Using the default strategy")
             pass
 
+        EastWestGuess = create_logged_function(EastWestGuess, f"./log-results/team{args.ewGuesses}-ewGuesses")
+
+
     if args.nSims:
-        total_scores = {"NS": 0, "EW": 0}
         # get consistent sequence of simulations given the seed
-        # random.seed(args.seed)
+        seed = args.seed
+        partnership_scoresNS = []
+        partnership_scoresEW = []
         for i in tqdm(range(args.nSims)):
-            seed = random.randint(0, 100000)
-            # seed = 1000
             scores = run_game_without_gui(seed)
-            total_scores["NS"] += scores["NS"]
-            total_scores["EW"] += scores["EW"]
+            partnership_scoresNS.append(scores["NS"])
+            partnership_scoresEW.append(scores["EW"])
+            seed += 1
         
         avg_scores = {
-            "NS": total_scores["NS"] / args.nSims,
-            "EW": total_scores["EW"] / args.nSims
+            "NS": np.mean(partnership_scoresNS),
+            "EW": np.mean(partnership_scoresEW)
         }
-        print(f"Average scores over {args.nSims} simulations:")
-        print(f"NS: {avg_scores['NS']:.2f}")
-        print(f"EW: {avg_scores['EW']:.2f}")
+        std_scores = {
+            "NS": np.std(partnership_scoresNS),
+            "EW": np.std(partnership_scoresEW)
+        }
+        print(f"Scores over {args.nSims} simulations:")
+        print(f"NS Mean: {avg_scores['NS']:.2f} | NS Std Dev: {std_scores['NS']:.2f}")
+        print(f"EW Mean: {avg_scores['EW']:.2f} | EW Std Dev: {std_scores['EW']:.2f}")
     else:
         print("Running GUI version...")
         import tkinter as tk
