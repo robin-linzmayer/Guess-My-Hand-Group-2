@@ -34,8 +34,17 @@ def playing(player, deck):
     print(" ")
     print(f"-------------- Playing: {player.name} -----------------")
 
+    round = len(player.guesses) + 1
     hand_indices = [get_card_index(card) for card in player.hand]
-    card_to_play_index = get_max_card(hand_indices)
+
+    # UNCOMMENT for Min/Max
+    if round % 2 == 0:
+        card_to_play_index = get_min_card(hand_indices)
+    else:
+        card_to_play_index = get_max_card(hand_indices)
+
+    # UNCOMMENT for Max
+    # card_to_play_index = get_max_card(hand_indices)
     return card_to_play_index
 
 def get_card_index(card):
@@ -55,6 +64,42 @@ def get_max_card(hand_indices):
     """
     max_index = hand_indices.index(max(hand_indices))
     return max_index
+
+def get_min_card(hand_indices):
+    """
+    Play card with the highest index to create upper bound value.
+    """
+    min_index = hand_indices.index(min(hand_indices))
+    return min_index
+
+def use_min_max_index(player, g_cards, round):
+    # Even round then exposed card was a minimum
+    if round % 2 == 0:
+        partner_exposed_min_card = player.exposed_cards[PARTNERS[player.name]][-1]
+        partner_exposed_max_card = player.exposed_cards[PARTNERS[player.name]][-2]
+        min_index = get_card_index(partner_exposed_min_card)
+        max_index = get_card_index(partner_exposed_max_card)
+    # First round edge case
+    elif round == 1:
+        partner_exposed_card = player.exposed_cards[PARTNERS[player.name]][-1]
+        max_index = get_card_index(partner_exposed_card)
+        min_index = 0
+    # Odd round then exposed card was a minimum
+    else:
+        partner_exposed_max_card = player.exposed_cards[PARTNERS[player.name]][-1]
+        partner_exposed_min_card = player.exposed_cards[PARTNERS[player.name]][-2]
+        min_index = get_card_index(partner_exposed_min_card)
+        max_index = get_card_index(partner_exposed_max_card)
+
+    guess_indices = [get_card_index(card) for card in g_cards]
+
+    index_filter = []
+    for i, guess_index in enumerate(guess_indices):
+        if max_index > guess_index > min_index:
+            index_filter.append(i)
+
+    in_range_cards = [g_cards[i] for i in index_filter]
+    return in_range_cards
 
 def use_max_value_index(player, g_cards):
     """
@@ -164,7 +209,8 @@ def guessing(player, cards, round):
     print(f"Round {round}: Guessable cards after filtering: {g_cards}")
 
     # Apply strategy to narrow possible cards
-    s_cards = use_max_value_index(player, g_cards)
+    s_cards = use_min_max_index(player, g_cards, round)
+    # s_cards = use_max_value_index(player, g_cards)
     print(f"Round {round}: Cards after applying max value index strategy: {s_cards}")
 
     if not s_cards:
