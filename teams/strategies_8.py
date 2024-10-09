@@ -63,7 +63,7 @@ def get_card_order(cards, rank):
     """
     cards = sorted(cards, key=get_card_value)
     order = []
-    rank -= 1  
+    # rank -= 1  
     n = len(cards)
 
     for i in range(n, 0, -1):
@@ -89,7 +89,7 @@ def get_rank_from_order(played_order):
         rank += index * math.factorial(n - 1 - i)
         available_cards.pop(index)
 
-    return rank + 1  # Weird hack Need to look at the ranks of the encoding and decoding. I think we might be off by 1
+    return rank  # Weird hack Need to look at the ranks of the encoding and decoding. I think we might be off by 1
 
 def hash_combination(cards):
     simpleHand = [f"{card.value}{card.suit[0]}" for card in cards] 
@@ -167,15 +167,44 @@ def guessing(player, cards, round):
         personal_hash_map = hash_map[player.name]
         personal_hash_index = hash_index_to_search[player.name]
         
-        max_team_mate_played_card = max(get_card_value(card) for card in teamMatesPlayedCards[0:7])
+        max_team_mate_played_card = max(get_card_value(card) for card in teamMatesPlayedCards[0:num_cards_to_send])
 
-        options = [combo for combo in personal_hash_map[personal_hash_index] 
-                   if get_card_value(combo[0]) > max_team_mate_played_card
-                   and set(combo).issubset(set(cards)) 
-                   and not set(get_other_teams_exposed_cards(player)).intersection(set(combo)) # Make sure the other team has not played any of these cards
-                   ]
+        options = []
+        all_cards_in_options = set()
+        for combo in personal_hash_map[personal_hash_index]:
+            if round > num_cards_to_send:
+                if (get_card_value(combo[0]) > max_team_mate_played_card 
+                    and set(combo).issubset(set(cards)) 
+                    and not set(get_other_teams_exposed_cards(player)).intersection(set(combo))
+                    and set(teamMatesPlayedCards[num_cards_to_send:]).issubset(set(combo)) # Check if the new cards played are in the combo
+                    ):
+                    options.append(combo)
+                    all_cards_in_options.update(combo)
+            else: 
+                if (get_card_value(combo[0]) > max_team_mate_played_card 
+                    and set(combo).issubset(set(cards)) 
+                    and not set(get_other_teams_exposed_cards(player)).intersection(set(combo))
+                    ):
+                    options.append(combo)
+                    all_cards_in_options.update(combo)
+        
+        personal_hash_map[personal_hash_index] = options
+
         if len(options) > 1:
             print(f"Number of Options: {len(options)} on round {round}")
+            print(f"Number of Cards in Options: {len(all_cards_in_options)} on round {round}")
+            non_viable_cards = set(cards) - all_cards_in_options
+            for card in non_viable_cards:
+                if card in card_probabilities[player.name]:
+                    del card_probabilities[player.name][card]
+            update_card_probs(cards, card_probabilities, player)
+            
+            card_probs = card_probabilities[player.name].copy()
+            guess = sorted(card_probs, key=card_probs.get, reverse=True)[:13 - round]
+            guesses[player.name].append(guess)
+            return guess
+
+
         chosen = random.choice(options)
         return list(set(chosen) - set(teamMatesPlayedCards))
     else:
@@ -184,12 +213,6 @@ def guessing(player, cards, round):
             guesses[player.name] = []
 
         update_card_probs(cards, card_probabilities, player)
-
-        # print('card probs', len(card_probabilities[player.name]))
-        # for card in card_probabilities[player.name]:
-        #     print(f'{card}: {card_probabilities[player.name][card]}, number of times guessed: {len([guess for guess in guesses[player.name] if card in guess])}')
-        
-        # guess = random.choices(list(card_probabilities[player.name].keys()), list(card_probabilities[player.name].values()), k=13 - round)
         card_probs = card_probabilities[player.name].copy()
         guess = sorted(card_probs, key=card_probs.get, reverse=True)[:13 - round]
         guesses[player.name].append(guess)
@@ -221,6 +244,7 @@ def update_card_probs(cards, card_probabilities, player):
     other_teams_exposed_cards_set = set(get_other_teams_exposed_cards(player))
 
     combined_probs_from_guesses = {key: 1 for key in card_probabilities[player.name]}
+    cards_with_non_zero_probability = set(card_probabilities.keys())
     for guess_index, guess in enumerate(guesses[player.name]):
         # print(guess_index)
         # print(player.cVals)
@@ -228,11 +252,11 @@ def update_card_probs(cards, card_probabilities, player):
         guess_set = set(guess)
 
         prob_numerator_for_cards_in_guess = cVal_for_guess - len(guess_set.intersection(team_mates_cards_set))
-        prob_denominator_for_cards_in_guess = len(guess) - len(guess_set.intersection(team_mates_cards_set)) - len(guess_set.intersection(other_teams_exposed_cards_set))
+        prob_denominator_for_cards_in_guess = len(guess) - len(guess_set.intersection(cards_with_non_zero_probability))
 
 
         num_cards_not_in_guess_team_mate_has_played = len(team_mates_cards_set) -  len(guess_set.intersection(team_mates_cards_set))
-        num_viable_cards_not_in_guess = len(set(get_viable_cards(cards, player)) - team_mates_cards_set - guess_set)
+        num_viable_cards_not_in_guess = len(cards_with_non_zero_probability - guess_set)
         
         prob_numerator_for_cards_not_in_guess = len(guess) - cVal_for_guess - num_cards_not_in_guess_team_mate_has_played
         prob_denominator_for_cards_not_in_guess = num_viable_cards_not_in_guess
@@ -242,14 +266,14 @@ def update_card_probs(cards, card_probabilities, player):
             if card in guess:
                 combined_probs_from_guesses[card] *= (prob_numerator_for_cards_in_guess / prob_denominator_for_cards_in_guess)
             else:
-                combined_probs_from_guesses[card] *= (prob_numerator_for_cards_not_in_guess / prob_denominator_for_cards_not_in_guess)    
+                combined_probs_from_guesses[card] *= (prob_numerator_for_cards_not_in_guess / prob_denominator_for_cards_not_in_guess)
     # Now combine all the probabilities from each guess
 
-    max_team_mate_played_card = max(get_card_value(card) for card in team_mates_cards_set)
+    # max_team_mate_played_card = max(get_card_value(card) for card in team_mates_cards_set)
     
-    for card in combined_probs_from_guesses:
-        if get_card_value(card) > max_team_mate_played_card:
-            combined_probs_from_guesses[card] *= 1.5
+    # for card in combined_probs_from_guesses:
+    #     if get_card_value(card) > max_team_mate_played_card:
+    #         combined_probs_from_guesses[card] *= 1.8
     
     card_probabilities[player.name] = combined_probs_from_guesses
 
