@@ -228,7 +228,11 @@ def playing(player, deck):
             play_card = [idx for idx in range(len(player.hand)) if player.hand[idx].value == play_value and player.hand[idx].suit == anti_suit][0]
             # print(play_card)
         else:
-            anti_suits.rotate(-1)
+            # anti_suits.rotate(-1)
+            del hand[max_suit]
+            second_max = max(hand, key=lambda key : len(hand[key]))
+            anti_suits = deque(['Spades', 'Clubs', 'Hearts', 'Diamonds'])
+            anti_suits.rotate(abs(anti_suits.index(second_max) - (len(anti_suits) - 1)))
             anti_suit = anti_suits[0]
 
     return play_card
@@ -247,6 +251,11 @@ def guessing(player, cards, round):
         update_card_probability(player, card_probability)
 
     num_of_guesses = 13 - round
+
+    # Fill guesses with only probability after N = 5 rounds
+    if round > 5:
+        return sorted([card for card in card_probability.keys()], lambda x : card_probability[x], reverse=True)[:num_of_guesses]
+
     teammate_suit = player.exposed_cards[teammate[player.name]][-1].suit
     anti_suits = deque(['Diamonds', 'Hearts', 'Clubs', 'Spades'])
     anti_suits.rotate(abs(anti_suits.index(teammate_suit) - (len(anti_suits) - 1)))
