@@ -87,6 +87,7 @@ def get_card_prob(player, g_cards, round):
     # Get constants
     G = 13 - round  # Number of guesses / cards in your partner's hand
     T = len(g_cards)  # Number of cards that are possible guesses
+    probs = None
 
     # Calculate probabilities for different rounds
     if round == 1:
@@ -139,22 +140,55 @@ def get_card_prob(player, g_cards, round):
 
 def guessing(player, cards, round):
     """
-    Guessing strategy goes here (number of guesses of your partner's cards)
+    Guessing strategy based on ranking guessable cards from highest to lowest probability 
+    and selecting top N guesses.
+
+    :param player: The Player object.
+    :param cards: List of all Card objects in the game.
+    :param round: Integer representing the current round number.
+    :return: List of guessed Card objects.
     """
     print(" ")
     print(f"-------------- Guessing: {player.name}, Round: {round} -----------------")
 
+    # Determine the number of guesses needed
+    num_guesses = 13 - round
+    print(f"Round {round}: Number of guesses needed: {num_guesses}")
+
+    if num_guesses <= 0:
+        print(f"Round {round}: No guesses needed.")
+        return []
+
     # Remove cards from list that are not valid guesses for this round.
     g_cards = get_guessable_cards(player, cards)
+    print(f"Round {round}: Guessable cards after filtering: {g_cards}")
 
     # Apply strategy to narrow possible cards
     s_cards = use_max_value_index(player, g_cards)
+    print(f"Round {round}: Cards after applying max value index strategy: {s_cards}")
+
+    if not s_cards:
+        print(f"Round {round}: No guessable cards available after applying strategy.")
+        return []
 
     # Update probability of possible cards
     p_cards = get_card_prob(player, s_cards, round)
+    print(f"Round {round}: Probabilities of guessable cards: {p_cards}")
 
-    # Sample cards based on their computed probabilities
-    return np.random.choice(s_cards, p=p_cards, size=13 - round, replace=False)
+    if not p_cards or len(p_cards) != len(s_cards):
+        print(f"Round {round}: Invalid probability distribution. Assigning uniform probabilities.")
+        p_cards = [1 / len(s_cards)] * len(s_cards)
 
+    # Pair each card with its probability
+    card_prob_pairs = list(zip(s_cards, p_cards))
 
+    # Sort the pairs based on probability in descending order
+    sorted_pairs = sorted(card_prob_pairs, key=lambda pair: pair[1], reverse=True)
+    print(f"Round {round}: Sorted guessable cards by probability: {sorted_pairs}")
+
+    # Select the top N cards based on the current round
+    selected_guesses = [card for card, prob in sorted_pairs[:num_guesses]]
+    print(f"Round {round}: Selected guesses: {selected_guesses}")
+
+    return selected_guesses
 
