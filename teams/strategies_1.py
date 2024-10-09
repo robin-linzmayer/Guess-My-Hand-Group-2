@@ -169,11 +169,8 @@ def guessing(player, cards, round):
     rem = sorted(rem)
     fake_suits = get_fake_suits(turn_number, rem, 4)
 
-    print(fake_suits)
     partner_card = player.exposed_cards[partner(player.name)][-1]
-    print(partner_card)
     partner_card_idx = card_to_idx(partner_card)
-    print(partner_card_idx)
     # Find the suit of the card exposed by the partner
     partner_suit = None
 
