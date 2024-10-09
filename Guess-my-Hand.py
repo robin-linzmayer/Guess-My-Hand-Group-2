@@ -169,7 +169,7 @@ class Game:
             # Update exposed cards for other players
             for j, other_player in enumerate(self.players):
                 other_player.update_exposed_cards(player.name, played_card)
-
+        
         northGuess = NorthSouthGuess(self.players[0], self.copyCards, self.round)
         self.players[0].guesses.append(northGuess)
         eastGuess = EastWestGuess(self.players[1], self.copyCards, self.round)
