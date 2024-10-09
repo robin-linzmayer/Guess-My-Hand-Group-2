@@ -29,6 +29,7 @@ SUITS = ["Clubs", "Diamonds", "Hearts", "Spades"]
 VALUES = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 NUM_CARDS = len(SUITS) * len(VALUES)
 CARD_PROBABILITIES = {num:1/39 for num in range(NUM_CARDS)}
+TEAMMATE = {"North": "South", "South": "North", "East": "West", "West": "East"}
 
 # Create a dictionary that maps 0-51 to (value, suit)
 NUM_TO_CARD = {
@@ -66,6 +67,7 @@ def update_prob_based_on_correct_answers(player,probability_dict, guessed_cards,
         probability_dict[card] *= perc_wrong
 
     normalize_probabilities(player)
+    print(player.name)
     print(probability_dict)
 
 def normalize(probability_dict):
@@ -112,7 +114,7 @@ def max_first(player, deck):
         if card_value > highest_card:
             highest_card = card_value
             max_index = i
-    
+    print(highest_card, NUM_TO_CARD[highest_card])
     return max_index
 
 def min_first(player, deck):
@@ -183,6 +185,19 @@ def zero_above_card(player, card):
         logging.debug(f"Setting probability of card {i} to 0")
     normalize_probabilities(player)
 
+def choose_cards(player, round, max_probs=False):
+    if not max_probs:
+        choices = np.random.choice(
+            list(player.card_probabilities.keys()),
+            13 - round,
+            p=list(player.card_probabilities.values()),
+            replace=False)
+    else:
+        choices = sorted(player.card_probabilities.keys(), key=lambda x:player.card_probabilities[x])[-(13 - round):]
+    card_choices = [NUM_TO_CARD[card] for card in choices]
+    card_choices_obj = [Card(card[0], card[1]) for card in card_choices]
+    return card_choices_obj
+
 
 def guessing(player, cards, round):
     global player_guesses
@@ -196,6 +211,18 @@ def guessing(player, cards, round):
     zero_probabilities(player, exposed_cards)
     zero_probabilities(player, player.played_cards)
 
+    last_exposed_card = player.exposed_cards[TEAMMATE[player.name]][-1]
+
+    # # if even round, guess the highest card
+    if round % 2 == 0:
+        logging.debug(f"Zeroing highest card and above")
+        print(f"Player {player.name} zeroing above {last_exposed_card}")
+        zero_above_card(player, last_exposed_card)
+    else:
+        logging.debug(f"Zeroing below card and above")
+        print(f"Player {player.name} zeroing below {last_exposed_card}")
+        zero_below_card(player, last_exposed_card)
+
     if round > 1:
         print(f"After round {round}, number of cvals : {player.cVals}")
     
@@ -208,35 +235,20 @@ def guessing(player, cards, round):
         update_prob_based_on_correct_answers(player, player.card_probabilities, previous_guess_indices, correct_answers)
 
 
-        teammate = {"North": "South", "South": "North", "East": "West", "West": "East"}
+        
 
         logging.debug(f"Current Player: {player.name}")
-        logging.debug(f"Current Teammate: {teammate[player.name]}")
-        logging.debug(f"The player, {player.name}, is examining card: {player.exposed_cards[teammate[player.name]][-1]}")
+        logging.debug(f"Current Teammate: {TEAMMATE[player.name]}")
+        logging.debug(f"The player, {player.name}, is examining card: {player.exposed_cards[TEAMMATE[player.name]][-1]}")
         
-        last_exposed_card = player.exposed_cards[teammate[player.name]][-1]
 
-        # # if even round, guess the highest card
-        if round % 2 == 0:
-            logging.debug(f"Zeroing highest card and above")
-            zero_above_card(player, last_exposed_card)
-        else:
-            logging.debug(f"Zeroing below card and above")
-            zero_below_card(player, last_exposed_card)
 
         logging.debug(f"Summary of Player: {player.name}")
         logging.debug(player.card_probabilities)
         # sum of probabilities should be 1
         logging.debug(f"Total probability: {sum(player.card_probabilities.values())}")
             
-
-    choice = np.random.choice(
-        list(player.card_probabilities.keys()),
-        13 - round,
-        p=list(player.card_probabilities.values()),
-        replace=False)
-    card_choices = [NUM_TO_CARD[card] for card in choice]
-    card_choices_obj = [Card(card[0], card[1]) for card in card_choices]
+    card_choices_obj = choose_cards(player, round, max_probs=False)
 
     if player.name not in player_guesses:
         player_guesses[player.name] = {}  # Initialize if not present
