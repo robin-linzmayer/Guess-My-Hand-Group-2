@@ -23,6 +23,7 @@ VALUE_ORDER = {
     "K": 12,
     "A": 8,
 }
+NUM_GAP_ROUNDS = 4 # Number of rounds that we cluster before max/min
 
 def playing(player, deck):
     """
@@ -137,6 +138,35 @@ def get_card_prob(player, s_cards, round):
             probs = [p / total_sum for p in probs]
 
     return probs
+
+def get_gaps(cards):
+    """
+    return an array of length NUM_GAP_ROUNDS / 2 conveying the largest gaps in our hand
+    Each value in the array is a tuple (x,y) where x is the value larger than the values in the gap, 
+    and y is the value smaller than the values in the gap.
+    Note that this is cyclic, so if x < y, then we know that there are no values less than x and 
+    no values greater than y.
+    """
+
+    return []
+
+"""
+NOTE
+  - on first turn we don't have knowledge of a full gap, so we should only guess cards that are less than and close to
+    the card that our partner played. To make it more convinient, we can just guess the 12 cards immediately below our partner's
+    first played card.
+
+  - after NUM_GAP_ROUNDS number of rounds, we switch back to a min/max playing strategy.
+
+  - at ODD TURNS we have info about full gaps and info about the top bound of a new gap. We can safely eliminate the card
+    immediately below that top bound. Is it useful to eliminate more than 1? Can make that a parameter.
+
+TODO [HANITA]:
+  - get_gaps takes in player.hand and returns the NUM_GAP_ROUNDS / 2 gaps in descending length order
+
+TODO [ROBIN]:
+  - Implement the elimination of those cards by the guesser
+"""
 
 def guessing(player, cards, round):
     """
