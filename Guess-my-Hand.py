@@ -265,23 +265,52 @@ def run_game_without_gui(seed):
         
     
     # Calculate final scores
-        northGuess = NorthSouthGuess(players[0], deck.copyCards, round)
-        players[0].guesses.append(northGuess)
-        eastGuess = EastWestGuess(players[1], deck.copyCards, round)
-        players[1].guesses.append(eastGuess)
-        southGuess = NorthSouthGuess(players[2], deck.copyCards, round)
-        players[2].guesses.append(southGuess)
-        westGuess = EastWestGuess(players[3], deck.copyCards, round)
-        players[3].guesses.append(westGuess)
-        cNorth = len(set(northGuess).intersection(set(players[2].hand)))
+        try:
+            northGuess = NorthSouthGuess(players[0], deck.copyCards, round)
+            players[0].guesses.append(northGuess)
+            cNorth = len(set(northGuess).intersection(set(players[2].hand)))
+        except:
+            print("North guessing failed")
+            players[0].guesses.append([[random.sample(deck.copyCards, 13 - round)]])
+            cNorth = 0
+
         players[0].cVals.append(cNorth)
-        cEast = len(set(eastGuess).intersection(set(players[3].hand)))
+
+        try:
+            eastGuess = EastWestGuess(players[1], deck.copyCards, round)
+            players[1].guesses.append(eastGuess)
+            cEast = len(set(eastGuess).intersection(set(players[3].hand)))
+        except:
+            print("East guessing failed")
+            players[1].guesses.append([[random.sample(deck.copyCards, 13 - round)]])
+            cEast = 0
+
         players[1].cVals.append(cEast)
-        cSouth = len(set(southGuess).intersection(set(players[0].hand)))
+
+        try:
+            southGuess = NorthSouthGuess(players[2], deck.copyCards, round)
+            players[2].guesses.append(southGuess)
+            cSouth = len(set(southGuess).intersection(set(players[0].hand)))
+
+        except:
+            print("South guessing failed")
+            players[2].guesses.append([[random.sample(deck.copyCards, 13 - round)]])
+            cSouth = 0
+
         players[2].cVals.append(cSouth)
-        cWest = len(set(westGuess).intersection(set(players[1].hand)))
+
+        try:
+            westGuess = EastWestGuess(players[3], deck.copyCards, round)
+            players[3].guesses.append(westGuess)
+            cWest = len(set(westGuess).intersection(set(players[1].hand)))
+
+        except:
+            print("West guessing failed")
+            players[3].guesses.append([random.sample(deck.copyCards, 13 - round)])
+            cWest = 0
+        
         players[3].cVals.append(cWest)
-        print(f"round: {round} N-{cNorth} S-{cSouth}")
+        print(f"round: {round} N-{cNorth} S-{cSouth} E-{cEast} W-{cWest}")
         ns_score += cNorth + cSouth
         ew_score += cEast + cWest
         
