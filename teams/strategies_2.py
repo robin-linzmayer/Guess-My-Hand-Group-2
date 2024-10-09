@@ -92,34 +92,28 @@ def get_card_prob(player, g_cards, round):
     # Calculate probabilities for different rounds
     if round == 1:
         # First round we won't have any information about previous guesses
-
-        ########### Tom (10/8):
-        #even_prob = (G / T) / T
-        #probs = [even_prob] * T
         probs = [1 / T] * T
-        #### Tom last line ###
-
     elif round == 12:
-        print(f"guesses: {player.guesses[round-2]}")
-        print(f"cval: {player.cVals[round-2]}")
+        pass
     else:
+        print(f"Guesses: {len(player.guesses[round - 2])}, {player.guesses[round - 2]}")
+        print(f"cval: {player.cVals[round - 2]}")
+
         #todo - Make this work for more than just the previous round of guesses
         probs = []
         C = player.cVals[round-2] # Minus 2 because first round is skipped so index at Round 2 starts at 0.
         guesses = player.guesses[round-2]
 
-        ######### Tom (10/8):
-        # prob_guessed_card = (C / G) / G
-        # prob_not_guessed_card = ((G - C) / (T - G)) / (T - G)
         prob_guessed_card = C / (G + 1)  # Probability for each guessed card
-        prob_not_guessed_card = (G + 1 - C) / (T - G)  # Probability for each unguessed card
+        try:
+            prob_not_guessed_card = (G + 1 - C) / (T - G)  # Probability for each unguessed card
+        except:
+            prob_not_guessed_card = 0
 
         # Normalize probabilities to ensure they sum to 1
         total_prob = prob_guessed_card * G + prob_not_guessed_card * (T - G)
         prob_guessed_card /= total_prob
         prob_not_guessed_card /= total_prob
-        ### Tom last line ###
-
 
         for card in g_cards:
             if card in guesses:
@@ -127,14 +121,12 @@ def get_card_prob(player, g_cards, round):
             else:
                 probs.append(prob_not_guessed_card)
 
-        ######### Tom (10/8):
         # Add a check to ensure the probabilities sum to 1
         total_sum = sum(probs)
         print("total_sum is: " + str(total_sum))
         if total_sum != 1:
             # force to renomrmalize
             probs = [p / total_sum for p in probs]
-        ### Tom last line ###
 
     return probs
 
