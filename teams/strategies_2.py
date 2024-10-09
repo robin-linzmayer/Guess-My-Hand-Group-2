@@ -38,13 +38,16 @@ def playing(player, deck):
     hand_indices = [get_card_index(card) for card in player.hand]
 
     # UNCOMMENT for Min/Max
-    if round % 2 == 0:
-        card_to_play_index = get_min_card(hand_indices)
-    else:
-        card_to_play_index = get_max_card(hand_indices)
+    # if round % 2 == 0:
+    #     card_to_play_index = get_min_card(hand_indices)
+    # else:
+    #     card_to_play_index = get_max_card(hand_indices)
 
     # UNCOMMENT for Max
-    # card_to_play_index = get_max_card(hand_indices)
+    card_to_play_index = get_max_card(hand_indices)
+
+    # UNCOMMENT for Min
+    # card_to_play_index = get_min_card(hand_indices)
     return card_to_play_index
 
 def get_card_index(card):
@@ -101,7 +104,7 @@ def use_min_max_index(player, g_cards, round):
     in_range_cards = [g_cards[i] for i in index_filter]
     return in_range_cards
 
-def use_max_value_index(player, g_cards):
+def use_max_index(player, g_cards):
     """
     Use the upper bound value strategy to inform guess
     """
@@ -118,6 +121,24 @@ def use_max_value_index(player, g_cards):
 
     below_max_cards = [g_cards[i] for i in index_filter]
     return below_max_cards
+
+def use_min_index(player, g_cards):
+    """
+    Use the upper bound value strategy to inform guess
+    """
+    # Take card exposed by partner and use it to inform the rest of our guesses
+    partner_exposed_card = player.exposed_cards[PARTNERS[player.name]][-1]
+    min_index = get_card_index(partner_exposed_card)
+
+    guess_indices = [get_card_index(card) for card in g_cards]
+
+    index_filter = []
+    for i, guess_index in enumerate(guess_indices):
+        if guess_index>min_index:
+            index_filter.append(i)
+
+    above_min_cards = [g_cards[i] for i in index_filter]
+    return above_min_cards
 
 def get_guessable_cards(player, cards):
     # Remove cards that in the player's hand
@@ -153,11 +174,12 @@ def get_card_prob(player, s_cards, round):
         print(f"cval: {C}")
 
         # There are cases where the previous guesses have had cards eliminated to the cvalue given is higher than the number of cards that are possible to include in our guess.
-        if C > G or T <= P:
+        if C >= G or T <= P:
             prob_guessed_card = 1
-            prob_not_guessed_card = 0
+            prob_not_guessed_card = 0.001
             total_prob = prob_guessed_card * P
         else:
+            print(f"G:{G}, C:{C}, T:{T}")
             prob_guessed_card = C / G  # Probability for each guessed card
             prob_not_guessed_card = (G - C) / (T - P)  # Probability for each unguessed card
             total_prob = prob_guessed_card * P + prob_not_guessed_card * (T - P)
@@ -209,8 +231,9 @@ def guessing(player, cards, round):
     print(f"Round {round}: Guessable cards after filtering: {g_cards}")
 
     # Apply strategy to narrow possible cards
-    s_cards = use_min_max_index(player, g_cards, round)
-    # s_cards = use_max_value_index(player, g_cards)
+    # s_cards = use_min_max_index(player, g_cards, round)
+    # s_cards = use_min_index(player, g_cards)
+    s_cards = use_max_index(player, g_cards)
     print(f"Round {round}: Cards after applying max value index strategy: {s_cards}")
 
     if not s_cards:
