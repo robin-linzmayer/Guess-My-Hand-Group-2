@@ -19,8 +19,14 @@ def initialize_totals(deck, remaining_cards, points):
         remaining_cards[card_to_idx(card)] = 1
         points[card_to_idx(card)] = 0
 
-def initialize_totals_guessing(deck, remaining_cards, points):
+def initialize_totals_guessing(deck, remaining_cards, points, player_name):
     print("Initializing totals guessing")
+    if player_name == "North" or player_name == "East":
+        global prev_guesses_1
+        prev_guesses_1 = []
+    else:
+        global prev_guesses_2
+        prev_guesses_2 = []
     for card in deck:
         remaining_cards[card_to_idx(card)] = 1
         points[card_to_idx(card)] = 0
@@ -85,7 +91,7 @@ def playing(player, deck):
     else:
         remaining_cards_local = remaining_cards_2
         points_local = points_2
-    if remaining_cards_local == {}:
+    if len(player.cVals) == 0:
         initialize_totals(deck, remaining_cards_local, points_local)
 
     cards_played = len(player.cVals)
@@ -147,8 +153,8 @@ def guessing(player, cards, round):
         points_local = points_2
         prev_guesses_local = prev_guesses_2
 
-    if remaining_cards_local == {}:
-        initialize_totals_guessing(cards, remaining_cards_local, points_local)
+    if round == 1:
+        initialize_totals_guessing(cards, remaining_cards_local, points_local, player.name)
         remove_from_points(player.hand, points_local)
 
     # print("Remaining cards: ", remaining_cards_local)
@@ -163,8 +169,11 @@ def guessing(player, cards, round):
     rem = sorted(rem)
     fake_suits = get_fake_suits(turn_number, rem, 4)
 
+    print(fake_suits)
     partner_card = player.exposed_cards[partner(player.name)][-1]
+    print(partner_card)
     partner_card_idx = card_to_idx(partner_card)
+    print(partner_card_idx)
     # Find the suit of the card exposed by the partner
     partner_suit = None
 
