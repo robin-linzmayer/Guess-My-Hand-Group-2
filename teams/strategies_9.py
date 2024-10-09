@@ -1,6 +1,14 @@
 from collections import defaultdict, deque
 from CardGame import Card, Deck, Player
 import random
+from teams.group9.constants import (
+    CARD_VAL,
+    CARD_SHIFT,
+    SUIT_VAL,
+    TEAMMATE,
+    PLAYER_GUESSES,
+    EXPOSED_CARDS
+)
 
 """
 PLAYER CLASS VARIABLES
@@ -30,92 +38,98 @@ self.values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 self.cards = [Card(suit, value) for suit in self.suits for value in self.values]
 """
 
-# Use to get card value with order 2 to A
-card_val = {
-    '2' : 0,
-    '3' : 1,
-    '4' : 2,
-    '5' : 3,
-    '6' : 4,
-    '7' : 5,
-    '8' : 6,
-    '9' : 7,
-    '10' : 8,
-    'J' : 9,
-    'Q' : 10,
-    'K' : 11,
-    'A' : 12,
-}
-# Use to shift card value
-card_shift = {
-    '2' : '3',
-    '3' : '4',
-    '4' : '5',
-    '5' : '6',
-    '6' : '7',
-    '7' : '8',
-    '8' : '9',
-    '9' : '10',
-    '10' : 'J',
-    'J' : 'Q',
-    'Q' : 'K',
-    'K' : 'A',
-    'A' : 'A',
-}
-# Use to get suit value
-suit_val = {
-    'Spades' : 0,
-    'Clubs' : 1,
-    'Hearts' : 2,
-    'Diamonds' : 3,
-}
-
-# Use to get teammate of current player
-teammate = {
-    "North" : "South",
-    "South" : "North",
-    "East" : "West",
-    "West" : "East",
-}
-
-teammate_max = ''
-player_guesses = {
-    'North' : [],
-    'East' : [],
-    'South' : [],
-    'West' : []
-}
-
-exposed_cards = []
-
-# Use to get anti-suit
-# anti_suits  = {
-#     "Spades" : "Diamonds",
-#     "Clubs" : "Spades",
-#     "Hearts" : "Clubs",
-#     "Diamonds" : "Hearts",
+# # Use to get card value with order 2 to A
+# CARD_VAL = {
+#     '2' : 0,
+#     '3' : 1,
+#     '4' : 2,
+#     '5' : 3,
+#     '6' : 4,
+#     '7' : 5,
+#     '8' : 6,
+#     '9' : 7,
+#     '10' : 8,
+#     'J' : 9,
+#     'Q' : 10,
+#     'K' : 11,
+#     'A' : 12,
+# }
+# # Use to shift card value
+# CARD_SHIFT = {
+#     '2' : '3',
+#     '3' : '4',
+#     '4' : '5',
+#     '5' : '6',
+#     '6' : '7',
+#     '7' : '8',
+#     '8' : '9',
+#     '9' : '10',
+#     '10' : 'J',
+#     'J' : 'Q',
+#     'Q' : 'K',
+#     'K' : 'A',
+#     'A' : 'A',
+# }
+# # Use to get suit value
+# SUIT_VAL = {
+#     'Spades' : 0,
+#     'Clubs' : 1,
+#     'Hearts' : 2,
+#     'Diamonds' : 3,
 # }
 
-# anti_suit_guess = deque(['Diamonds', 'Hearts,', 'Clubs', 'Spades'])
+# # Use to get teammate of current player
+# TEAMMATE = {
+#     "North" : "South",
+#     "South" : "North",
+#     "East" : "West",
+#     "West" : "East",
+# }
+
+# # teammate_max = ''
+# PLAYER_GUESSES = {
+#     'North' : [],
+#     'East' : [],
+#     'South' : [],
+#     'West' : []
+# }
+
+# EXPOSED_CARDS = []
 
 def check_possible(card, player):
     return (card not in player.hand) and (card not in [card for cards in player.exposed_cards.values() for card in cards])
 
-def shuffle(player):
-    deck = Deck()
+def initialize(deck):
+    mapping = {
+        'Spades' : 1,
+        'Clubs' : 2,
+        'Hearts' : 3,
+        'Diamonds' : 4
+    }
+    org_deck = defaultdict(list)
+    for card in deck.cards:
+        org_deck[mapping[card.suit]].append(card)
+    
+    for idx in mapping.values():
+        org_deck[idx].sort(key = lambda x : CARD_VAL[x.value])
+    
+    return org_deck
+
+def shuffle(deck):
 
     #exclude the cards that are exposed in this round
-    exposed_now = len(exposed_cards) % 4
+    exposed_now = len(EXPOSED_CARDS) % 4
     if exposed_now != 0:
         # Remove the excess elements from the end
-        prev_exposed_cards = exposed_cards[:-exposed_now]
+        prev_exposed_cards = EXPOSED_CARDS[:-exposed_now]
     else:
-        prev_exposed_cards = exposed_cards
+        prev_exposed_cards = EXPOSED_CARDS
 
     remaining_cards = list(set(deck.cards) - set(prev_exposed_cards))
 
     # Shuffle remaining_cards using the provided seed for consistency
     seed = len(remaining_cards)
+    # print(f'SEED : {seed}')
     random.seed(seed)
     random.shuffle(remaining_cards)
 
@@ -131,7 +145,7 @@ def shuffle(player):
 
 # Converts a card to the index in card_probability
 # def card_to_index (suit, val):
-#     return (13 * suit_val[suit]) + card_val[val]
+#     return (13 * SUIT_VAL[suit]) + CARD_VAL[val]
 # Use to get the current probability of guessing a card
 # Keys: Card Object, Val : 1/52
 
@@ -140,31 +154,33 @@ def remove_cards_from_hand(player, card_probability):
     for card in player.hand:
         if card in card_probability:
             del card_probability[card]
+    return card_probability
 
 # Remove cards from exposed cards in card_probability 
 def remove_cards_from_exposed_cards(player, card_probability):
     for cards in player.exposed_cards.values():
         for exposed_card in cards:
             for card in card_probability:
-                if card in card_probability and card.suit == exposed_card and card_val[card.value] <= card_val[exposed_card]:
+                if card in card_probability and card.suit == exposed_card and CARD_VAL[card.value] <= CARD_VAL[exposed_card]:
                     del card_probability[card]
+    return card_probability
 
 
 # Updates card_probability based on previous guesses
 def update_card_probability(player, card_probability):
     total_viable_cards = len(card_probability)
-    teammate_played_cards = player.exposed_cards[teammate[player.name]]
+    teammate_played_cards = player.exposed_cards[TEAMMATE[player.name]]
 
-    for ind, guesses in enumerate(player_guesses[player.name]):
+    for ind, guesses in enumerate(PLAYER_GUESSES[player.name]):
         correct_guesses = player.cVals[ind]
         total_guesses = len(guesses)
         
         if ind == 0:
-            print("I GUESSED ", total_guesses, " CARDS AND GOT ", correct_guesses, " OF THEM RIGHT LAST TURN.")
+            # print("I GUESSED ", total_guesses, " CARDS AND GOT ", correct_guesses, " OF THEM RIGHT LAST TURN.")
             val_check_arr = []
             for card in guesses:
                 val_check_arr.append((card.value, card.suit))
-            print("MY PREV GUESSES: ", val_check_arr)
+            # print("MY PREV GUESSES: ", val_check_arr)
 
         num = correct_guesses
         den = total_guesses
@@ -213,32 +229,41 @@ def print_probability_table(card_probability):
 
 def playing(player, deck):
     """Greedy Suit Strategy"""
+
     if not player.hand:
         return None
     
     for cards in player.exposed_cards.values():
         for card in cards:
-            if card not in exposed_cards:
-                exposed_cards.append(card)
+            if card not in EXPOSED_CARDS:
+                EXPOSED_CARDS.append(card)
     
     # Create dictionary for shuffled deck
-    shuffled_dict = shuffle(player)
-    print(f"Shuffled deck: {shuffled_dict}")
+    deck = Deck()
+    if len(player.hand) == 13:
+        deck_dict = initialize(deck)
+    else:
+        deck_dict = shuffle(deck)
+        # print(f"Shuffled deck: {deck_dict}")
 
     hand = defaultdict(list)
+    suits = [1,2,3,4]
+    # print(player.hand)
     for card in player.hand:
-        hand[card.suit].append(card.value)
+        for suit in suits:
+            if card in deck_dict[suit]:
+                hand[suit].append(card)
+                break
 
     max_suit = max(hand, key=lambda key : len(hand[key]))
     # print(max_suit, hand[max_suit])
 
     # improve to min-max
     if len(hand[max_suit]) == len(player.hand):
-        play_value = min(hand[max_suit])
-        play_card = [idx for idx in range(len(player.hand)) if player.hand[idx].value == play_value and player.hand[idx].suit == max_suit][0]
-        return play_card
+        play_card = min(hand[max_suit], key = lambda card : deck_dict[max_suit].index(card))
+        return player.hand.index(play_card)
 
-    anti_suits = deque(['Spades', 'Clubs', 'Hearts', 'Diamonds'])
+    anti_suits = deque([1, 2, 3, 4])
     # print(abs(anti_suits.index(max_suit) - len(anti_suits)))
     # print(anti_suits)
     anti_suits.rotate(abs(anti_suits.index(max_suit) - (len(anti_suits) - 1)))
@@ -246,17 +271,28 @@ def playing(player, deck):
     anti_suit = anti_suits[0]
     # print(max_suit, anti_suit)
 
-    play_card = -1
-    while play_card < 0:
+    play_card_idx = -1
+    while play_card_idx < 0:
         if hand[anti_suit]:
-            play_value = min(hand[anti_suit])
-            play_card = [idx for idx in range(len(player.hand)) if player.hand[idx].value == play_value and player.hand[idx].suit == anti_suit][0]
-            # print(play_card)
+            play_card = min(hand[anti_suit], key = lambda card : deck_dict[anti_suit].index(card))
+            play_card_idx = player.hand.index(play_card)
+            # print(play_card_idx) 
         else:
-            anti_suits.rotate(-1)
+            # anti_suits.rotate(-1)
+            del hand[max_suit]
+            # print(hand)
+            max_suit = max(hand, key=lambda key : len(hand[key]))
+            # print(max_suit)
+            anti_suits = deque([1, 2, 3, 4])
+            anti_suits.rotate(abs(anti_suits.index(max_suit) - (len(anti_suits) - 1)))
             anti_suit = anti_suits[0]
+            # print(hand[anti_suit])
+            if not hand[anti_suit]:
+                anti_suit = max_suit
+    
+    # print(f'{player.name} --- MAX SUIT: {max_suit}, ANTI SUIT: {anti_suit}')
 
-    return play_card
+    return play_card_idx
 
 def guessing(player, cards, round):
     """
@@ -264,17 +300,45 @@ def guessing(player, cards, round):
     """
 
     card_probability = {card : 1 for card in cards}
-    remove_cards_from_hand(player, card_probability)
-    remove_cards_from_exposed_cards(player, card_probability)
-    # print("Guesses: ", player_guesses)
-    print("Player cVals: ", player.cVals)
+    card_probability = remove_cards_from_hand(player, card_probability)
+    card_probability = remove_cards_from_exposed_cards(player, card_probability)
+    # print("Guesses: ", PLAYER_GUESSES)
+    # print("Player cVals: ", player.cVals)
     if round > 1:
         update_card_probability(player, card_probability)
 
     num_of_guesses = 13 - round
-    teammate_suit = player.exposed_cards[teammate[player.name]][-1].suit
-    anti_suits = deque(['Diamonds', 'Hearts', 'Clubs', 'Spades'])
+
+    # Fill guesses with only probability after 6 rounds
+    if round > 6:
+        return sorted([card for card in card_probability.keys()], key = lambda x : card_probability[x], reverse=True)[:num_of_guesses]
+    
+    for cards in player.exposed_cards.values():
+        for i in range(len(cards) - 1):
+            if cards[i] not in EXPOSED_CARDS:
+                EXPOSED_CARDS.append(cards[i])
+
+    deck = Deck()
+    if round == 1:
+        deck_dict = initialize(deck)
+    else:
+        deck_dict = shuffle(deck)
+        # print(f"Shuffled deck: {deck_dict}")
+
+    # teammate_suit = player.exposed_cards[teammate[player.name]][-1].suit
+    teammate_card = player.exposed_cards[TEAMMATE[player.name]][-1]
+    teammate_suit = 0
+    for suit in deck_dict.keys():
+        if teammate_card in deck_dict[suit]:
+            # print(player.name)
+            # print(f'Teammate card: {teammate_card}')
+            # print(f'Suit: {suit}, {deck_dict[suit]}')
+            teammate_suit = suit
+            break
+
+    anti_suits = deque([4,3,2,1])
     anti_suits.rotate(abs(anti_suits.index(teammate_suit) - (len(anti_suits) - 1)))
+    teammate_max = anti_suits[0]
     # if not player.cVals:
     #     anti_suit = anti_suits[0]
     #     teammate_max = anti_suit
@@ -285,15 +349,15 @@ def guessing(player, cards, round):
     # else:
     #     anti_suit = anti_suits[0]
     #     teammate_max = anti_suit
-    if player.cVals and player.cVals[-1] == 0:
-        anti_suits.rotate(round - 1)
-        anti_suit = anti_suits[0]
-        teammate_max = anti_suit
-    else:
-        anti_suit = anti_suits[0]
-        teammate_max = anti_suit
+    # if player.cVals and player.cVals[-1] == 0:
+    #     anti_suits.rotate(round - 1)
+    #     anti_suit = anti_suits[0]
+    #     teammate_max = anti_suit
+    # else:
+    #     anti_suit = anti_suits[0]
+    #     teammate_max = anti_suit
 
-    print("THIS IS TEAMMATE SUIT: ", teammate_suit, "THIS IS ANTI SUIT: ", teammate_max)
+    # print(f"{player.name} --- THIS IS TEAMMATE SUIT: {teammate_suit}, THIS IS ANTI SUIT: {teammate_max}")
     
 
     # # This is a testing print
@@ -302,8 +366,8 @@ def guessing(player, cards, round):
     #     val_check_arr.append((card.value, card.suit))
     # print("Potential Guesses:", val_check_arr)
     
-    potential_guesses = [card for card in card_probability if card.suit == teammate_max] # All 13 cards of the teammate_suit
-    potential_guesses.sort(key=lambda x:card_val[x.value])
+    potential_guesses = [card for card in deck_dict[teammate_max] if card in card_probability] # All 13 cards of the teammate_suit
+    potential_guesses.sort(key=lambda x : deck_dict[teammate_max].index(x))
     # This is a testing print
     # val_check_arr = []
     # for card in potential_guesses:
@@ -312,16 +376,13 @@ def guessing(player, cards, round):
     
     if len(potential_guesses) < num_of_guesses:
         num_of_missing_cards = num_of_guesses - len(potential_guesses)
-        extra_guesses = []
-        for card in card_probability.keys():
-            if card not in potential_guesses:
-                extra_guesses.append(card)
+        extra_guesses = [card for card in card_probability if card not in potential_guesses]
         potential_guesses.extend(sorted(extra_guesses, key=lambda x : card_probability[x], reverse=True)[:num_of_missing_cards])
 
     if len(potential_guesses) > num_of_guesses:
-        potential_guesses = potential_guesses[:13-round]
+        potential_guesses = potential_guesses[round:] if len(potential_guesses[round:]) == num_of_guesses else potential_guesses[:num_of_guesses]
 
-    player_guesses[player.name].append(potential_guesses)
+    PLAYER_GUESSES[player.name].append(potential_guesses)
 
     return potential_guesses
 
@@ -344,10 +405,10 @@ def guessing(player, cards, round):
 #         teammate_max = anti_suit
 
 #     potential_guesses = [card for card in cards if (card.suit == teammate_max and check_possible(card, player))] # All 13 cards of the teammate_suit
-#     potential_guesses.sort(key=lambda x:card_val[x.value])
+#     potential_guesses.sort(key=lambda x:CARD_VAL[x.value])
 
 #     while len(potential_guesses) < num_of_guesses:
-#         teammate_value = card_shift[teammate_value]
+#         teammate_value = CARD_SHIFT[teammate_value]
 #         if check_possible(Card(teammate_suit, teammate_value), player):
 #             potential_guesses.append(Card(teammate_suit, str(teammate_value)))
 
