@@ -82,41 +82,49 @@ def get_guessable_cards(player, cards):
         g_cards = list(set(g_cards) - set(exposed))
     return g_cards
 
-def get_card_prob(player, g_cards, round):
+def get_card_prob(player, s_cards, round):
 
-    # Get constants
-    G = 13 - round  # Number of guesses / cards in your partner's hand
-    T = len(g_cards)  # Number of cards that are possible guesses
-    probs = None
+    P = 13 - round    # Number of cards in your Partner's hand
+    T = len(s_cards)  # Number of cards that could be in partner's hand based on Strategy (all possible cards to build our guess from)
+    probs = [1 / T] * T
+    print(f"P: {P}, T: {T}")
 
-    # Calculate probabilities for different rounds
-    if round == 1:
-        # First round we won't have any information about previous guesses
-        probs = [1 / T] * T
-    elif round == 12:
-        pass
-    else:
-        print(f"Guesses: {len(player.guesses[round - 2])}, {player.guesses[round - 2]}")
-        print(f"cval: {player.cVals[round - 2]}")
+    if P == T or round == 1:
+        return probs
 
-        #todo - Make this work for more than just the previous round of guesses
-        probs = []
-        C = player.cVals[round-2] # Minus 2 because first round is skipped so index at Round 2 starts at 0.
-        guesses = player.guesses[round-2]
+    if player.guesses:
+        # Get cValue from previous round
+        C = player.cVals[round - 2]  # Minus 2 because first round is skipped so index at Round 2 starts at 0.
+        # Remove historical guesses that are no longer valid before calculating probabilities
+        guess = player.guesses[round - 2]
+        adj_guess = [card for card in guess if card in s_cards]
+        G = len(adj_guess) # Number of guesses made that can be used with the cvalue.
 
-        prob_guessed_card = C / (G + 1)  # Probability for each guessed card
-        try:
-            prob_not_guessed_card = (G + 1 - C) / (T - G)  # Probability for each unguessed card
-        except:
+        if G == 0:
+            return probs
+
+        print(f"Possible cards: {len(s_cards)}, {s_cards}")
+        print(f"Guesses: {G}, {adj_guess}")
+        print(f"cval: {C}")
+
+        # There are cases where the previous guesses have had cards eliminated to the cvalue given is higher than the number of cards that are possible to include in our guess.
+        if C > G or T <= P:
+            prob_guessed_card = 1
             prob_not_guessed_card = 0
+            total_prob = prob_guessed_card * P
+        else:
+            prob_guessed_card = C / G  # Probability for each guessed card
+            prob_not_guessed_card = (G - C) / (T - P)  # Probability for each unguessed card
+            total_prob = prob_guessed_card * P + prob_not_guessed_card * (T - P)
 
         # Normalize probabilities to ensure they sum to 1
-        total_prob = prob_guessed_card * G + prob_not_guessed_card * (T - G)
         prob_guessed_card /= total_prob
         prob_not_guessed_card /= total_prob
 
-        for card in g_cards:
-            if card in guesses:
+        # Add these probabilities to a list
+        probs = []
+        for card in s_cards:
+            if card in adj_guess:
                 probs.append(prob_guessed_card)
             else:
                 probs.append(prob_not_guessed_card)
