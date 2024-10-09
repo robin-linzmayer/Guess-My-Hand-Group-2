@@ -240,6 +240,7 @@ def import_class_from_file(folder, file_name, class_name):
 
 def run_game_without_gui(seed):
     deck = Deck(seed)
+    print("Seed: ", seed)
     players = [
         Player("North", NorthSouthStrategy),
         Player("East", EastWestStrategy),
@@ -263,15 +264,13 @@ def run_game_without_gui(seed):
             for other_player in players:
                 other_player.update_exposed_cards(player.name, played_card)
         
-    
-    # Calculate final scores
         try:
             northGuess = NorthSouthGuess(players[0], deck.copyCards, round)
             players[0].guesses.append(northGuess)
             cNorth = len(set(northGuess).intersection(set(players[2].hand)))
         except:
             print("North guessing failed")
-            players[0].guesses.append([[random.sample(deck.copyCards, 13 - round)]])
+            players[0].guesses.append([random.sample(deck.copyCards, 13 - round)])
             cNorth = 0
 
         players[0].cVals.append(cNorth)
@@ -282,7 +281,7 @@ def run_game_without_gui(seed):
             cEast = len(set(eastGuess).intersection(set(players[3].hand)))
         except:
             print("East guessing failed")
-            players[1].guesses.append([[random.sample(deck.copyCards, 13 - round)]])
+            players[1].guesses.append([random.sample(deck.copyCards, 13 - round)])
             cEast = 0
 
         players[1].cVals.append(cEast)
@@ -294,7 +293,7 @@ def run_game_without_gui(seed):
 
         except:
             print("South guessing failed")
-            players[2].guesses.append([[random.sample(deck.copyCards, 13 - round)]])
+            players[2].guesses.append([random.sample(deck.copyCards, 13 - round)])
             cSouth = 0
 
         players[2].cVals.append(cSouth)
@@ -310,12 +309,13 @@ def run_game_without_gui(seed):
             cWest = 0
         
         players[3].cVals.append(cWest)
-        print(f"round: {round} N-{cNorth} S-{cSouth} E-{cEast} W-{cWest}")
+
         ns_score += cNorth + cSouth
         ew_score += cEast + cWest
         
         round += 1
-    del deck, players, northGuess, southGuess, eastGuess, westGuess
+    print(f"NS Score-{ns_score} EW Score-{ew_score}")
+    del deck, players
     return {"NS": ns_score, "EW": ew_score}
 
 
@@ -371,9 +371,10 @@ if __name__ == "__main__":
     if args.nSims:
         total_scores = {"NS": 0, "EW": 0}
         # get consistent sequence of simulations given the seed
-        random.seed(args.seed)
-        for _ in tqdm(range(args.nSims)):
-            seed = random.randint(0, 10000) 
+        # random.seed(args.seed)
+        for i in tqdm(range(args.nSims)):
+            seed = random.randint(0, 100000)
+            # seed = 1000
             scores = run_game_without_gui(seed)
             total_scores["NS"] += scores["NS"]
             total_scores["EW"] += scores["EW"]

@@ -126,4 +126,4 @@ if __name__ == "__main__":
     # random.seed()
 
     game = Game()
-    game.simulate_n_games(10000)
+    game.simulate_n_games(100)
