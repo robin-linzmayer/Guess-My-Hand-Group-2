@@ -18,22 +18,24 @@ TEAMMATE_NAME = {
     "West": "East",
 }
 
-# determines for how many rounds a player should 
+# determines for how many rounds a player should
 # give the card with the best seed until they start
 # playing unlikely cards
 SEED_ROUNDS = 2
+
 
 def get_seed(card: Card):
     return int(CARD_VALUE.get(card.value, card.value)) + 13 * (
         list(card.map.keys()).index(card.suit)
     )
 
+
 def get_possible_cards():
     possible_cards = []
     for card in [Card(suit, value) for suit in ALL_SUITS for value in ALL_VALUES]:
         if card not in possible_cards:
             possible_cards.append(card)
-    
+
     return possible_cards
 
 
@@ -47,10 +49,11 @@ def get_shuffle(card: Card) -> list[Card]:
     np.random.shuffle(shuffled_cards)
 
     # TODO: process a shuffle here based off which cards have been played at this point
-    # useful for when the player wants to see the actual quality's 
+    # useful for when the player wants to see the actual quality's
     # of a shuffle when choosing the unlikeliest card
 
     return shuffled_cards
+
 
 def card_with_best_seed(player: Player) -> Card:
     played_cards = sum(list(player.exposed_cards.values()), [])
@@ -75,10 +78,9 @@ def card_with_best_seed(player: Player) -> Card:
         if score > highest_score:
             highest_score = score
             card_to_play = card
-    
+
     # TODO: plays random card - we can optimize this
     return card_to_play or player.hand[0]
-
 
 
 def get_teammate_shuffle(player, teammate_last_card):
@@ -93,7 +95,7 @@ def get_teammate_shuffle(player, teammate_last_card):
     for c in shuffled_cards:
         if c in played_cards + player.hand:
             shuffled_cards.remove(c)
-    
+
     return shuffled_cards
 
 
@@ -107,6 +109,7 @@ def get_teammate_last_card(player):
         return random.sample(cards, 13 - round)
 
     return teammate_last_card
+
 
 def get_exposed_cards(player) -> set:
     """Returns a set of all exposed cards"""
@@ -131,9 +134,11 @@ def remove_impossible_cards(player, combination: list[Card]) -> list[Card]:
 
     return cards_to_guess
 
+
 def corrected_cVal(player, idx):
     """Calculate the corrected cVal out of a specific guess
-    The corrected cVal deducts one point for every correct card our player guessed that has since been played"""
+    The corrected cVal deducts one point for every correct card our player guessed that has since been played
+    """
     original = player.cVals[idx]
 
     teammates_exposed = player.exposed_cards[TEAMMATE_NAME[player.name]]
@@ -148,7 +153,7 @@ def corrected_cVal(player, idx):
 
 def get_most_likely_cards(player, cards):
     """
-    Returns a list of tuple(Card, probability: float), 
+    Returns a list of tuple(Card, probability: float),
     with the cards that are most likely in the hands of our teammate first
     """
 
@@ -166,19 +171,24 @@ def get_most_likely_cards(player, cards):
         # calculate average probability of each guessed card being in our teammate's hand
         for valid_card in valid_cards:
             seen_count = seen[valid_card]
-            if seen_count ==  0:
+            if seen_count == 0:
                 # first time we're seeing this card
-                # its probability is the cVal from our guess divided 
+                # its probability is the cVal from our guess divided
                 # by the number of all possible cards from that guess
                 likelyhood[valid_card] = cVal / len(valid_cards)
             else:
                 prob = likelyhood[valid_card]
                 # calculate the average probability out of all our guesses
-                likelyhood[valid_card] = prob * (seen_count / (seen_count + 1)) + cVal / len(valid_cards)
+                likelyhood[valid_card] = prob * (
+                    seen_count / (seen_count + 1)
+                ) + cVal / len(valid_cards)
 
             seen[valid_card] = seen_count + 1
 
-    return sorted([(k, v) for k, v in likelyhood.items()], key=lambda x: x[1], reverse=True)
+    return sorted(
+        [(k, v) for k, v in likelyhood.items()], key=lambda x: x[1], reverse=True
+    )
+
 
 def add_likely_cards(player, combination, cards):
     most_likely = get_most_likely_cards(player, cards)
@@ -194,7 +204,6 @@ def add_likely_cards(player, combination, cards):
         else:
             random_card = remove_impossible_cards(player, cards)[0]
             likelies.append(random_card)
-            
 
     return combination + likelies
 
@@ -212,11 +221,11 @@ def unlikeliest_card(player: Player, deck: Deck) -> Card:
             if card in shown:
                 shown[card] += 1
 
-
     # order the cards depedening on how often they showed up
     unlikely_cards = sorted([(k, v) for k, v in shown.items()], key=lambda x: x[1])
 
     return unlikely_cards[0][0]
+
 
 def playing(player: Player, deck: Deck):
     """
@@ -236,6 +245,7 @@ def playing(player: Player, deck: Deck):
 
     # raise Exception("This should never happen")
 
+
 def guessing(player, cards, round):
     """
     Player 3 Guess
@@ -243,11 +253,8 @@ def guessing(player, cards, round):
 
     if len(player.guesses) < SEED_ROUNDS:
         teammate_last_card = get_teammate_last_card(player)
-
         shuffled_cards = get_teammate_shuffle(player, teammate_last_card)
-
         combination = shuffled_cards[: 13 - len(player.played_cards)]
-
         combination = remove_impossible_cards(player, combination)
         combination = add_likely_cards(player, combination, cards)
     else:
