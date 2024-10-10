@@ -282,6 +282,9 @@ def playing(player: Player, deck: Deck):
         # play the card my teammate is unlikeliest to guess
         card_to_play = unlikeliest_card(player, deck)
 
+    if True:
+        card_to_play = card_with_best_seed(player)
+
     return player.hand.index(card_to_play)
 
     # raise Exception("This should never happen")
@@ -291,6 +294,24 @@ def guessing(player, cards, round):
     """
     Player 3 Guess
     """
+
+    if True:  # Set to False because this strategy is not optimized yet
+        card_p = get_card_probabilities(player, cards, round)
+        card_freq = get_card_indication_freq(player, cards, round)
+
+        combined_prob = dict()
+
+        valid_cards = remove_impossible_cards(player, get_possible_cards())
+        for card in valid_cards:
+            average_prob = sum(card_p[card]) / len(card_p[card]) if card_p[card] else 0
+            if len(player.guesses) < SEED_ROUNDS:
+                average_prob = 0
+            combined_prob[card] = average_prob * card_freq[card]
+
+        combination = sorted(
+            combined_prob, key=lambda c: combined_prob[c], reverse=True
+        )
+        combination = combination[: 13 - round]
 
     get_card_probabilities(player, cards, round)
     get_card_indication_freq(player, cards, round)
