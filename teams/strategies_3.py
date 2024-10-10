@@ -179,9 +179,9 @@ def get_most_likely_cards(player, cards):
             else:
                 prob = likelyhood[valid_card]
                 # calculate the average probability out of all our guesses
-                likelyhood[valid_card] = prob * (
-                    seen_count / (seen_count + 1)
-                ) + cVal / len(valid_cards)
+                likelyhood[valid_card] = (
+                    prob * seen_count + cVal / len(valid_cards)
+                ) / (seen_count + 1)
 
             seen[valid_card] = seen_count + 1
 
