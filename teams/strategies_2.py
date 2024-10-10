@@ -25,18 +25,20 @@ VALUE_ORDER = {
     "A": 8,
 }
 NUM_GAP_ROUNDS = 6 # Number of rounds that we cluster before max/min
-GAPS_NE = None
-GAPS_SW = None
+# GAPS_NE = []
+# GAPS_SW = []
 
 def playing(player, deck):
     """
     Playing strategy goes here (what card will the player expose to their partner)
     """
+    global GAPS_NE
+    global GAPS_SW
     if not player.hand:
         return None
 
     print(" ")
-    print(f"-------------- Playing: {player.name} -----------------")
+    print(f"-------------- Playing: {player.name}, Round: {len(player.guesses) + 1} -----------------")
 
     hand_indices = [get_card_index(card) for card in player.hand]
     round = len(player.guesses) + 1
@@ -44,26 +46,42 @@ def playing(player, deck):
     # Get Gaps
     # Note that we only calculate them once because otherwise they will be unstable between rounds as cards are exposed.
     if round <= NUM_GAP_ROUNDS:
-        if round == 1:
-            gaps = get_gaps(hand_indices)
-            gaps_flat = [item for gap_range in gaps for item in gap_range]
-            print(f"Gaps: {gaps_flat}")
-            if player.name in ['North', 'East']:
-                GAPS_NE = gaps_flat
-            else:
-                GAPS_SW = gaps_flat
-
+        # Other rounds just pull from the gaps already defined
         if player.name in ['North', 'East']:
-            card_to_play_index = GAPS_NE[round-1]
+            if round == 1:
+                GAPS_NE = []
+            if round % 2 == 1:
+                GAPS_NE = calculate_new_gaps(player, hand_indices, GAPS_NE)
+            print(f"Gaps: {GAPS_NE}")
+            gap_index = GAPS_NE[round-1]
+            print(f"Gap to play: {gap_index}")
+            card_to_play_index = hand_indices.index(gap_index)
         else:
-            card_to_play_index = GAPS_SW[round-1]
+            if round == 1:
+                GAPS_SW = []
+            if round % 2 == 1:
+                GAPS_SW = calculate_new_gaps(player, hand_indices, GAPS_SW)
+            print(f"Gaps: {GAPS_SW}")
+            gap_index = GAPS_SW[round-1]
+            print(f"Gap to play: {gap_index}")
+            card_to_play_index = hand_indices.index(gap_index)
 
     # Fall back to Max index strategy
     else:
         card_to_play_index = get_max_card(hand_indices)
 
+    print(f"Cards in hand: {player.hand}")
+    print(f"Card indices in hand: {hand_indices}")
     print(f"Card index to play: {card_to_play_index}")
     return card_to_play_index
+
+
+def calculate_new_gaps(player, hand_indices, GAPS):
+
+    gaps = get_largest_gap(hand_indices)
+    gaps_flat = [item for gap_range in gaps for item in gap_range]
+    GAPS = GAPS + gaps_flat
+    return GAPS
 
 def use_gap_index(player, g_cards, round):
 
@@ -87,54 +105,31 @@ def use_gap_index(player, g_cards, round):
         else:
             values_below_max = values_above_max[-sample:]
 
-        return values_below_max
+        return filter_g_cards(g_cards, values_below_max)
 
     else:
         if round % 2 == 0:
             guess_indices_minus_gap = remove_multiple_gaps(guess_indices, exposed_card_indices, round)
-            return guess_indices_minus_gap
-
         else:
             guess_indices_minus_gap = remove_multiple_gaps(guess_indices, exposed_card_indices, round-1)
             gap_partial_max = exposed_card_indices[round-1]
             guess_indices_minus_gap = remove_next_largest(guess_indices_minus_gap, gap_partial_max)
-            return guess_indices_minus_gap
+            print(f"AAAAAAA Gaps: {guess_indices_minus_gap}")
 
-def remove_multiple_gaps(guess_indices, exposed_card_indices, round):
-    guess_indices_minus_gap = guess_indices
-    # Iterate over all even numbers and get the pairs of gap bounds from previously exposed cards.
-    for e in range(0, round, 2):
-        gap_max = exposed_card_indices[e]
-        gap_min = exposed_card_indices[e + 1]
-        guess_indices_minus_gap = remove_gap(guess_indices_minus_gap, gap_max, gap_min)
-    return guess_indices_minus_gap
+        return filter_g_cards(g_cards, guess_indices_minus_gap)
 
-def remove_gap(list_of_indices, gap_max, gap_min):
-    if max > min:
-        indices_minus_gap = [x for x in list_of_indices if not gap_min <= x <= gap_max]
-    else:
-        indices_minus_gap = [x for x in list_of_indices if not (x <= gap_max or x > gap_min)]
-    return indices_minus_gap
-
-def remove_next_largest(guess_indices, gap_partial_max):
-    # Get the minimum index that is larger than the partial max bound
-    larger_than_partial_max = [num for num in guess_indices if num > gap_partial_max]
-    if len(larger_than_partial_max) > 0:
-        next_largest = min(larger_than_partial_max)
-    else:
-        next_largest = min(guess_indices)
-    return guess_indices.remove(next_largest)
-
-def get_card_index(card):
+def filter_g_cards(g_cards, strategy_index_filter):
     """
-    This function maps cards to an index and scrambles the index.
-    """
-    # Hash formula that combines suit and value in a less predictable way
-    suit = SUIT_ORDER[card.suit]
-    value = VALUE_ORDER[card.value]
+    g_cards: [Card] list of card objects that represent all valid guessable cards that a player can guess.
+    strategy_index_filter: [int] this list is a filter of all the hashed index values of the guessable cards.
 
-    index = suit * 13 + value
-    return index
+    return: filtered_g_cards [Card] this takes the strategy_index_filter developed by player applying the guessing strategy and reverses the mapping to get a filtered list of strategy applied guessable cards.
+    """
+    print(f"G Cards: {g_cards}")
+    print(f"Strategy Index: {strategy_index_filter}")
+    filtered_g_cards = [card for card in g_cards if get_card_index(card) in strategy_index_filter]
+
+    return filtered_g_cards
 
 def get_max_card(hand_indices):
     """
@@ -160,6 +155,44 @@ def use_max_value_index(player, g_cards):
 
     below_max_cards = [g_cards[i] for i in index_filter]
     return below_max_cards
+
+def remove_multiple_gaps(guess_indices, exposed_card_indices, round):
+    guess_indices_minus_gap = guess_indices
+    # Iterate over all even numbers and get the pairs of gap bounds from previously exposed cards.
+    for e in range(0, round, 2):
+        gap_max = exposed_card_indices[e]
+        gap_min = exposed_card_indices[e + 1]
+        guess_indices_minus_gap = remove_gap(guess_indices_minus_gap, gap_max, gap_min)
+    return guess_indices_minus_gap
+
+def remove_gap(list_of_indices, gap_max, gap_min):
+    if gap_max > gap_min:
+        indices_minus_gap = [x for x in list_of_indices if not gap_min <= x <= gap_max]
+    else:
+        indices_minus_gap = [x for x in list_of_indices if not (x <= gap_max or x > gap_min)]
+    return indices_minus_gap
+
+def remove_next_largest(guess_indices, gap_partial_max):
+    # Get the minimum index that is larger than the partial max bound
+    larger_than_partial_max = [num for num in guess_indices if num > gap_partial_max]
+    if len(larger_than_partial_max) > 0:
+        next_largest = min(larger_than_partial_max)
+    else:
+        next_largest = min(guess_indices)
+
+    guess_indices.remove(next_largest)
+    return guess_indices
+
+def get_card_index(card):
+    """
+    This function maps cards to an index and scrambles the index.
+    """
+    # Hash formula that combines suit and value in a less predictable way
+    suit = SUIT_ORDER[card.suit]
+    value = VALUE_ORDER[card.value]
+
+    index = suit * 13 + value
+    return index
 
 def get_guessable_cards(player, cards):
     # Remove cards that in the player's hand
@@ -225,7 +258,7 @@ def get_card_prob(player, s_cards, round):
 
     return probs
 
-def get_gaps(cards: list[int]) -> list[(int,int)]:
+def get_largest_gap(cards: list[int]) -> list[(int,int)]:
     """
     :param cards: list of integers representing the player's hand
 
@@ -235,10 +268,11 @@ def get_gaps(cards: list[int]) -> list[(int,int)]:
     Note that this is cyclic, so if x < y, then we know that there are no values less than x and
     no values greater than y.
     """
-    num_gaps = int(NUM_GAP_ROUNDS / 2)
+    num_gaps = 1
     if num_gaps < 1: return []
 
     gap_dict = {}
+    cards = cards.copy()
     cards.sort()
 
     for i in range(len(cards)-1):
