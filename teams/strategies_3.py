@@ -227,6 +227,23 @@ def unlikeliest_card(player: Player, deck: Deck) -> Card:
     return unlikely_cards[0][0]
 
 
+def get_card_indication_freq(player: Player, cards: list[Card], round: int):
+    all_cards = get_possible_cards()
+    card_probabilities = {
+        card: 0 for card in remove_impossible_cards(player, all_cards)
+    }
+
+    for idx, played_card in enumerate(player.exposed_cards[TEAMMATE_NAME[player.name]]):
+        shuffled_cards = get_teammate_shuffle(player, played_card)
+        combination = shuffled_cards[: 12 - idx]
+
+        for card in combination:
+            if card in card_probabilities:
+                card_probabilities[card] += 1
+
+    return card_probabilities
+
+
 def get_card_probabilities(
     player: Player, cards: list[Card], round: int
 ) -> dict[Card, float]:
@@ -276,6 +293,7 @@ def guessing(player, cards, round):
     """
 
     get_card_probabilities(player, cards, round)
+    get_card_indication_freq(player, cards, round)
 
     if len(player.guesses) < SEED_ROUNDS:
         teammate_last_card = get_teammate_last_card(player)
