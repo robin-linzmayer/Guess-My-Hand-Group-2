@@ -1,5 +1,4 @@
 import numpy as np
-import heapq
 
 # Shared global variables
 PARTNERS = {
@@ -230,9 +229,9 @@ def get_gaps(cards: list[int]) -> list[(int,int)]:
     :param cards: list of integers representing the player's hand
 
     return an array of length NUM_GAP_ROUNDS / 2 conveying the largest gaps in our hand
-    Each value in the array is a tuple (x,y) where x is the value larger than the values in the gap, 
+    Each value in the array is a tuple (x,y) where x is the value larger than the values in the gap,
     and y is the value smaller than the values in the gap.
-    Note that this is cyclic, so if x < y, then we know that there are no values less than x and 
+    Note that this is cyclic, so if x < y, then we know that there are no values less than x and
     no values greater than y.
     """
     num_gaps = int(NUM_GAP_ROUNDS / 2)
@@ -252,7 +251,7 @@ def get_gaps(cards: list[int]) -> list[(int,int)]:
         if gap > 0:
             # if these are not in a row, then there is a gap
             gap_dict[(next_card,card)] = gap
-            
+
     return heapq.nlargest(num_gaps, gap_dict, key=gap_dict.get)
 
 """
