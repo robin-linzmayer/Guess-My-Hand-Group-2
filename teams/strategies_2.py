@@ -24,7 +24,9 @@ VALUE_ORDER = {
     "K": 12,
     "A": 8,
 }
-NUM_GAP_ROUNDS = 4 # Number of rounds that we cluster before max/min
+NUM_GAP_ROUNDS = 6 # Number of rounds that we cluster before max/min
+GAPS_NE = None
+GAPS_SW = None
 
 def playing(player, deck):
     """
@@ -37,8 +39,88 @@ def playing(player, deck):
     print(f"-------------- Playing: {player.name} -----------------")
 
     hand_indices = [get_card_index(card) for card in player.hand]
-    card_to_play_index = get_max_card(hand_indices)
+    round = len(player.guesses) + 1
+
+    # Get Gaps
+    # Note that we only calculate them once because otherwise they will be unstable between rounds as cards are exposed.
+    if round <= NUM_GAP_ROUNDS:
+        if round == 1:
+            gaps = get_gaps(hand_indices)
+            gaps_flat = [item for gap_range in gaps for item in gap_range]
+            if player.name in ['North', 'East']:
+                GAPS_NE = gaps_flat
+            else:
+                GAPS_SW = gaps_flat
+
+        if player.name in ['North', 'East']:
+            card_to_play_index = GAPS_NE[round-1]
+        else:
+            card_to_play_index = GAPS_SW[round-1]
+
+    # Fall back to Max index strategy
+    else:
+        card_to_play_index = get_max_card(hand_indices)
     return card_to_play_index
+
+def use_gap_index(player, g_cards, round):
+
+    guess_indices = [get_card_index(card) for card in g_cards]
+    exposed_card_indices = [get_card_index(card) for card in player.exposed_cards[PARTNERS[player.name]]]
+
+    # First round we only have the MAX of a gap. Consequently return only the 12 cards ABOVE that max
+    # Reminder that BELOW the MAX is the gap.
+    # For example --> the gap (10,1) means that [9,8,...2] are NOT present in our partner's hand. We don't yet know that 2 is the lower bound but directionally guessing 10-22 is better and we have equal information there.
+    # Take card exposed by partner and use it to inform the rest of our guesses
+    if round == 1:
+        max_index = exposed_card_indices[0]
+        guess_indices.sort(reverse=True) # Descending
+        sample = 13 - round
+        values_above_max = [x for x in guess_indices if x > max_index]
+
+        # For example if the max in the range is 18 and only 19, 22 are above, then sample from the lowest numbers.
+        if len(values_above_max) < sample:
+            looped_values = guess_indices[-(sample - len(values_above_max)):]
+            values_below_max = looped_values + values_above_max
+        else:
+            values_below_max = values_above_max[-sample:]
+
+        return values_below_max
+
+    else:
+        if round % 2 == 0:
+            guess_indices_minus_gap = remove_multiple_gaps(guess_indices, exposed_card_indices, round)
+            return guess_indices_minus_gap
+
+        else:
+            guess_indices_minus_gap = remove_multiple_gaps(guess_indices, exposed_card_indices, round-1)
+            gap_partial_max = exposed_card_indices[round-1]
+            guess_indices_minus_gap = remove_next_largest(guess_indices_minus_gap, gap_partial_max)
+            return guess_indices_minus_gap
+
+def remove_multiple_gaps(guess_indices, exposed_card_indices, round):
+    guess_indices_minus_gap = guess_indices
+    # Iterate over all even numbers and get the pairs of gap bounds from previously exposed cards.
+    for e in range(0, round, 2):
+        gap_max = exposed_card_indices[e]
+        gap_min = exposed_card_indices[e + 1]
+        guess_indices_minus_gap = remove_gap(guess_indices_minus_gap, gap_max, gap_min)
+    return guess_indices_minus_gap
+
+def remove_gap(list_of_indices, gap_max, gap_min):
+    if max > min:
+        indices_minus_gap = [x for x in list_of_indices if not gap_min <= x <= gap_max]
+    else:
+        indices_minus_gap = [x for x in list_of_indices if not (x <= gap_max or x > gap_min)]
+    return indices_minus_gap
+
+def remove_next_largest(guess_indices, gap_partial_max):
+    # Get the minimum index that is larger than the partial max bound
+    larger_than_partial_max = [num for num in guess_indices if num > gap_partial_max]
+    if len(larger_than_partial_max) > 0:
+        next_largest = min(larger_than_partial_max)
+    else:
+        next_largest = min(guess_indices)
+    return guess_indices.remove(next_largest)
 
 def get_card_index(card):
     """
@@ -173,7 +255,7 @@ def get_gaps(cards: list[int]) -> list[(int,int)]:
 """
 NOTE
   - on first turn we don't have knowledge of a full gap, so we should only guess cards that are less than and close to
-    the card that our partner played. To make it more convinient, we can just guess the 12 cards immediately below our partner's
+    the card that our partner played. To make it more convenient, we can just guess the 12 cards immediately below our partner's
     first played card.
 
   - after NUM_GAP_ROUNDS number of rounds, we switch back to a min/max playing strategy.
@@ -214,7 +296,10 @@ def guessing(player, cards, round):
     print(f"Round {round}: Guessable cards after filtering: {g_cards}")
 
     # Apply strategy to narrow possible cards
-    s_cards = use_max_value_index(player, g_cards)
+    if round <= NUM_GAP_ROUNDS:
+        s_cards = use_gap_index(player, g_cards, round)
+    else:
+        s_cards = use_max_value_index(player, g_cards)
     print(f"Round {round}: Cards after applying max value index strategy: {s_cards}")
 
     if not s_cards:
