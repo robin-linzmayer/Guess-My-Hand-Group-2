@@ -47,6 +47,7 @@ def playing(player, deck):
         if round == 1:
             gaps = get_gaps(hand_indices)
             gaps_flat = [item for gap_range in gaps for item in gap_range]
+            print(f"Gaps: {gaps_flat}")
             if player.name in ['North', 'East']:
                 GAPS_NE = gaps_flat
             else:
@@ -60,6 +61,8 @@ def playing(player, deck):
     # Fall back to Max index strategy
     else:
         card_to_play_index = get_max_card(hand_indices)
+
+    print(f"Card index to play: {card_to_play_index}")
     return card_to_play_index
 
 def use_gap_index(player, g_cards, round):
