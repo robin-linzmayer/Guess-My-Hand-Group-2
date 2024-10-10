@@ -227,6 +227,17 @@ def unlikeliest_card(player: Player, deck: Deck) -> Card:
     return unlikely_cards[0][0]
 
 
+def get_card_probabilities(
+    player: Player, cards: list[Card], round: int
+) -> dict[Card, float]:
+    all_cards = get_possible_cards()
+    card_probabilities = {card: 1 / 52 for card in all_cards}
+
+    exposed_cards = get_exposed_cards(player)
+    for card in exposed_cards:
+        card_probabilities[card] = 0
+
+
 def playing(player: Player, deck: Deck):
     """
     Player 3 strategy
