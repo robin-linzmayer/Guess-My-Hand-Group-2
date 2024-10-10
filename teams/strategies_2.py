@@ -24,9 +24,7 @@ VALUE_ORDER = {
     "K": 12,
     "A": 8,
 }
-NUM_GAP_ROUNDS = 6 # Number of rounds that we cluster before max/min
-# GAPS_NE = []
-# GAPS_SW = []
+NUM_GAP_ROUNDS = 4 # Number of rounds that we cluster before max/min
 
 def playing(player, deck):
     """
@@ -113,8 +111,7 @@ def use_gap_index(player, g_cards, round):
         else:
             guess_indices_minus_gap = remove_multiple_gaps(guess_indices, exposed_card_indices, round-1)
             gap_partial_max = exposed_card_indices[round-1]
-            guess_indices_minus_gap = remove_next_largest(guess_indices_minus_gap, gap_partial_max)
-            print(f"AAAAAAA Gaps: {guess_indices_minus_gap}")
+            guess_indices_minus_gap = remove_n_largest(guess_indices_minus_gap, gap_partial_max, 1)
 
         return filter_g_cards(g_cards, guess_indices_minus_gap)
 
@@ -172,15 +169,18 @@ def remove_gap(list_of_indices, gap_max, gap_min):
         indices_minus_gap = [x for x in list_of_indices if not (x <= gap_max or x > gap_min)]
     return indices_minus_gap
 
-def remove_next_largest(guess_indices, gap_partial_max):
+def remove_n_largest(guess_indices, gap_partial_max, N):
     # Get the minimum index that is larger than the partial max bound
     larger_than_partial_max = [num for num in guess_indices if num > gap_partial_max]
-    if len(larger_than_partial_max) > 0:
-        next_largest = min(larger_than_partial_max)
-    else:
-        next_largest = min(guess_indices)
 
-    guess_indices.remove(next_largest)
+    for i in range(0,N):
+        if len(larger_than_partial_max) > 0:
+            next_largest = min(larger_than_partial_max)
+        else:
+            next_largest = min(guess_indices)
+
+        guess_indices.remove(next_largest)
+        larger_than_partial_max.remove(next_largest)
     return guess_indices
 
 def get_card_index(card):
