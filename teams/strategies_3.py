@@ -231,11 +231,24 @@ def get_card_probabilities(
     player: Player, cards: list[Card], round: int
 ) -> dict[Card, float]:
     all_cards = get_possible_cards()
-    card_probabilities = {card: 1 / 52 for card in all_cards}
+    card_probabilities = {
+        card: [] for card in remove_impossible_cards(player, all_cards)
+    }
 
-    exposed_cards = get_exposed_cards(player)
-    for card in exposed_cards:
-        card_probabilities[card] = 0
+    for idx, guess in enumerate(player.guesses):
+        valid_guesses = remove_impossible_cards(player, guess)
+        cVal = corrected_cVal(player, idx)
+
+        for card in card_probabilities.keys():
+            if card in valid_guesses:
+                card_probabilities[card].append(cVal / len(valid_guesses))
+            else:
+                card_probabilities[card].append(
+                    (len(card_probabilities) - len(valid_guesses) - cVal)
+                    / (len(card_probabilities) - len(valid_guesses))
+                )
+
+    return card_probabilities
 
 
 def playing(player: Player, deck: Deck):
@@ -261,6 +274,8 @@ def guessing(player, cards, round):
     """
     Player 3 Guess
     """
+
+    get_card_probabilities(player, cards, round)
 
     if len(player.guesses) < SEED_ROUNDS:
         teammate_last_card = get_teammate_last_card(player)
