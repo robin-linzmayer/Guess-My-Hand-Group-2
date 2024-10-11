@@ -23,7 +23,8 @@ TEAMMATE_NAME = {
 # give the card with the best seed until they start
 # playing unlikely cards
 SEED_ROUNDS = 2
-SAVE_SEED_SCORE_DATA = True
+SAVE_SEED_SCORE_DATA = False
+USE_UNLIKELY_CARD_STRATEGY = False
 
 
 def get_seed(card: Card):
@@ -287,7 +288,7 @@ def playing(player: Player, deck: Deck):
     if not player.hand:
         return None
 
-    if True:
+    if not USE_UNLIKELY_CARD_STRATEGY:
         card_to_play = card_with_best_seed(player)
     else:
         if len(player.guesses) < SEED_ROUNDS:
@@ -306,7 +307,9 @@ def guessing(player, cards, round):
     Player 3 Guess
     """
 
-    if True:  # Set to False because this strategy is not optimized yet
+    if (
+        not USE_UNLIKELY_CARD_STRATEGY
+    ):  # Set to False because this strategy is not optimized yet
         card_p = get_card_probabilities(player, cards, round)
         card_freq = get_card_indication_freq(player, cards, round)
 
@@ -315,27 +318,25 @@ def guessing(player, cards, round):
         valid_cards = remove_impossible_cards(player, get_possible_cards())
         for card in valid_cards:
             average_prob = sum(card_p[card]) / len(card_p[card]) if card_p[card] else 0
-            if len(player.guesses) < SEED_ROUNDS:
-                average_prob = 0
-            combined_prob[card] = average_prob * card_freq[card]
+            combined_prob[card] = average_prob + card_freq[card] * (0.4 - round * 0.03)
 
         combination = sorted(
             combined_prob, key=lambda c: combined_prob[c], reverse=True
         )
         combination = combination[: 13 - round]
-
-    if len(player.guesses) < SEED_ROUNDS:
-        teammate_last_card = get_teammate_last_card(player)
-        shuffled_cards = get_teammate_shuffle(player, teammate_last_card)
-        combination = shuffled_cards[: 13 - len(player.played_cards)]
-        combination = remove_impossible_cards(player, combination)
-        combination = add_likely_cards(player, combination, cards)
     else:
-        combination = add_likely_cards(player, [], cards)
+        if len(player.guesses) < SEED_ROUNDS:
+            teammate_last_card = get_teammate_last_card(player)
+            shuffled_cards = get_teammate_shuffle(player, teammate_last_card)
+            combination = shuffled_cards[: 13 - len(player.played_cards)]
+            combination = remove_impossible_cards(player, combination)
+            combination = add_likely_cards(player, combination, cards)
+        else:
+            combination = add_likely_cards(player, [], cards)
 
-    if round == 13 and SAVE_SEED_SCORE_DATA:
-        with open(f"seed_scores.csv", mode="a", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(player.seed_scores)
+        if round == 13 and SAVE_SEED_SCORE_DATA:
+            with open(f"seed_scores.csv", mode="a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerows(player.seed_scores)
 
     return combination
