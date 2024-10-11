@@ -334,7 +334,6 @@ def guessing(player, cards, round):
         combination = add_likely_cards(player, [], cards)
 
     if round == 13 and SAVE_SEED_SCORE_DATA:
-        print(player.seed_scores)
         with open(f"seed_scores.csv", mode="a", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(player.seed_scores)
