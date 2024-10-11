@@ -115,7 +115,7 @@ def initialize(deck):
     
     return org_deck
 
-def shuffle(player, deck, role = 'playing', use='shuffle', seed=None):
+def shuffle(player, deck, role='playing', use='shuffle', round=None):
 
     #exclude the cards that are exposed in this round
     # exposed_now = len(EXPOSED_CARDS) % 4
@@ -139,7 +139,13 @@ def shuffle(player, deck, role = 'playing', use='shuffle', seed=None):
         # Shuffle remaining_cards using the provided seed for consistency
         seed = len(remaining_cards)
     elif use == 'calc_prob':
-        seed = seed
+        prev_index = round - 1
+        prev_exposed_cards = []
+        for exposed in player.exposed_cards.values():
+            prev_exposed_cards += exposed[:prev_index]
+        
+        remaining_cards = list(set(deck.cards) - set(prev_exposed_cards))
+        seed = len(remaining_cards)
     else:
         assert "Invalid use case"
     # print(f'SEED : {seed} for Player {player.name} when {role}')
@@ -167,16 +173,16 @@ def remove_cards_from_hand(player, card_probability):
     for card in player.hand:
         if card in card_probability:
             del card_probability[card]
-    return card_probability
+
 
 # Remove cards from exposed cards in card_probability 
 def remove_cards_from_exposed_cards(player, card_probability):
     for cards in player.exposed_cards.values():
         for exposed_card in cards:
-            for card in card_probability:
-                if card in card_probability and card.suit == exposed_card and CARD_VAL[card.value] <= CARD_VAL[exposed_card]:
-                    del card_probability[card]
-    return card_probability
+            if exposed_card in card_probability:
+                del card_probability[exposed_card]
+
+    
 
 # Eliminate the index less than the min
 def eliminate_min_ind(card_probability, exposed_card, deck_dict):
@@ -187,14 +193,19 @@ def eliminate_min_ind(card_probability, exposed_card, deck_dict):
             # print(f'Suit: {suit}, {deck_dict[suit]}')
             cur_suit = suit
             break
-
+    # print("THE EXPOSED CARD IS: ", exposed_card)
+    # print(f"Suit: {deck_dict[cur_suit]}")
+    count = 0
     for card in deck_dict[cur_suit][:deck_dict[cur_suit].index(exposed_card)]:
-        del card_probability[card]
-        print("I AM REMOVING: ", (card.value, card.suit))
+        # print("I AM REMOVING: ", (card.value, card.suit))
+        if card in card_probability:
+            count += 1
+            del card_probability[card]
+    # print(f'I REMOVED {count} CARDS')
         
 
 # Updates card_probability based on previous guesses
-def update_card_probability(player, card_probability):
+def update_card_probability(player, card_probability, round):
     total_viable_cards = len(card_probability)
     teammate_played_cards = player.exposed_cards[TEAMMATE[player.name]]
 
@@ -204,7 +215,8 @@ def update_card_probability(player, card_probability):
         if ind == 0:
             deck_dict = initialize(deck)
         else:
-            deck_dict = shuffle(player, deck, role='guessing', use='calc_prob',seed= (52 - ((ind) * 4)))
+            deck_dict = shuffle(player, deck, role='guessing', use='calc_prob', round=ind + 1)
+        # print(f"Shuffled deck: {deck_dict}")
 
         exposed_card = player.exposed_cards[TEAMMATE[player.name]][ind]
 
@@ -257,14 +269,22 @@ def update_card_probability(player, card_probability):
                 else:
                     card_probability[card] *= unGuess_prob
 
-<<<<<<< HEAD
-        if (ind == len(player.guesses) - 1):
-            print("I AM PLAYER ", player.name, " AND THIS IS MY PROBABILITY:")
-            print_probability_table(card_probability)
-=======
-        # print("I AM PLAYER ", player.name, " AND THIS IS MY PROBABILITY:")
-        # print_probability_table(card_probability)
->>>>>>> 3f972fa0f3c1d778ddc5e0be958a5b30877d9543
+    deck = Deck()
+    deck_dict = dict()
+ 
+
+    deck_dict = shuffle(player, deck, role='guessing', use='calc_prob', round=round)
+    # print(f"Shuffled deck: {deck_dict}")
+
+    exposed_card = player.exposed_cards[TEAMMATE[player.name]][round - 1]
+    # print("WHAT MY TEAMMATE PLAYED: ", exposed_card)
+
+    eliminate_min_ind(card_probability, exposed_card, deck_dict)
+
+    
+    # print("I AM PLAYER ", player.name, " AND THIS IS MY PROBABILITY:")
+    # print_probability_table(card_probability)
+    # print(f"WE HAVE {len(card_probability.keys())} CARDS LEFT")
 
 def print_probability_table(card_probability):
     sorted_cards =  sorted(card_probability.keys(), key=lambda x : card_probability[x], reverse=True)
@@ -359,12 +379,15 @@ def guessing(player, cards, round):
         # print(f"Shuffled deck: {deck_dict}")
 
     card_probability = {card : 1 for card in cards} # Initialize to 1
-    card_probability = remove_cards_from_hand(player, card_probability, deck_dict)
-    card_probability = remove_cards_from_exposed_cards(player, card_probability, deck_dict)
+    remove_cards_from_hand(player, card_probability)
+    # print("AFTER REMOVING FROM HAND: ", len(card_probability))
+    remove_cards_from_exposed_cards(player, card_probability)
+    # print("AFTER REMOVING FROM EXPOSED CARDS: ", len(card_probability))
+
     # print("Guesses: ", player.guesses)
     # print("Player cVals: ", player.cVals)
     if round > 1:
-        update_card_probability(player, card_probability)
+        update_card_probability(player, card_probability, round)
 
     num_of_guesses = 13 - round
 
@@ -432,22 +455,12 @@ def guessing(player, cards, round):
     if len(potential_guesses) < num_of_guesses:
         num_of_missing_cards = num_of_guesses - len(potential_guesses)
         extra_guesses = [card for card in card_probability if card not in potential_guesses]
-        # print("MY PRECIOUS CARDS: ", sorted(extra_guesses, key=lambda x : card_probability[x], reverse=True)[:num_of_missing_cards])
+        print("MY PRECIOUS CARDS: ", sorted(extra_guesses, key=lambda x : card_probability[x], reverse=True)[:num_of_missing_cards])
         potential_guesses.extend(sorted(extra_guesses, key=lambda x : card_probability[x], reverse=True)[:num_of_missing_cards])
 
     if len(potential_guesses) > num_of_guesses:
         potential_guesses = potential_guesses[round:] if len(potential_guesses[round:]) == num_of_guesses else potential_guesses[:num_of_guesses]
-        # print("MY PRECIOUS SUITS: ", potential_guesses)
-
-<<<<<<< HEAD
-    if len(potential_guesses) ==  num_of_guesses:
-        print("I HAVE PERFECT NUMBER OF GUESSES: ", potential_guesses)
-=======
-    # if len(potential_guesses) ==  num_of_guesses:
-    #     print("I HAVE PERFECT NUMBER OF GUESSES: ", potential_guesses)
-    
-    # PLAYER_GUESSES[player.name].append(potential_guesses)
->>>>>>> 3f972fa0f3c1d778ddc5e0be958a5b30877d9543
+        print("MY PRECIOUS SUITS: ", potential_guesses)
 
     return potential_guesses
 
