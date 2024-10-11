@@ -253,7 +253,7 @@ def get_card_probabilities(
     }
 
     for idx, guess in enumerate(player.guesses):
-        valid_guesses = remove_impossible_cards(player, guess)
+        valid_guesses = remove_impossible_cards(player, list(set(guess)))
         cVal = corrected_cVal(player, idx)
 
         for card in card_probabilities.keys():
@@ -312,9 +312,6 @@ def guessing(player, cards, round):
             combined_prob, key=lambda c: combined_prob[c], reverse=True
         )
         combination = combination[: 13 - round]
-
-    get_card_probabilities(player, cards, round)
-    get_card_indication_freq(player, cards, round)
 
     if len(player.guesses) < SEED_ROUNDS:
         teammate_last_card = get_teammate_last_card(player)
