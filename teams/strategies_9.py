@@ -142,7 +142,7 @@ def shuffle(player, deck, role = 'playing', use='shuffle', seed=None):
         seed = seed
     else:
         assert "Invalid use case"
-    # print(f'SEED : {seed} for Player {player.name} when {role}')
+    print(f'SEED : {seed} for Player {player.name} when {role}')
     random.seed(seed)
     random.shuffle(remaining_cards)
 
@@ -153,6 +153,7 @@ def shuffle(player, deck, role = 'playing', use='shuffle', seed=None):
     for i in range(4):
         start_index = i * group_len
         shuffled_dict[i + 1] = remaining_cards[start_index:start_index + group_len]
+    print(shuffled_dict)
     
     return shuffled_dict
 
@@ -297,6 +298,8 @@ def playing(player, deck):
         if hand[anti_suit]:
             play_card = min(hand[anti_suit], key = lambda card : deck_dict[anti_suit].index(card))
             play_card_idx = player.hand.index(play_card)
+            print(deck_dict[anti_suit])
+            print(play_card)
             # print(play_card_idx) 
         else:
             # anti_suits.rotate(-1)
