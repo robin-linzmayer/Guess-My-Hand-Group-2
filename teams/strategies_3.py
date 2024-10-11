@@ -24,7 +24,7 @@ TEAMMATE_NAME = {
 # playing unlikely cards
 SEED_ROUNDS = 2
 SAVE_SEED_SCORE_DATA = False
-USE_UNLIKELY_CARD_STRATEGY = False
+USE_UNLIKELY_CARD_STRATEGY = True
 
 
 def get_seed(card: Card):
