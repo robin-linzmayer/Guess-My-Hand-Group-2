@@ -36,7 +36,18 @@ def playing(player, deck):
 
     hand_indices = [get_card_index(card) for card in player.hand]
     card_to_play_index = get_max_card(hand_indices)
+    round = len(player.played_cards) + 1
+    
+    if round == 1:
+        min_window_index = get_best_window_lower_bound(hand_indices)
+        print(f"{player.name} will play card at index {min_window_index}")
+
+        # Print the window that the partner will guess
+        partner_window = list(range(min_window_index+1, min_window_index + 13))
+        print(f"Partner will guess cards in the window: {partner_window}")
+
     return card_to_play_index
+
 
 def get_card_index(card):
     """
@@ -192,3 +203,35 @@ def guessing(player, cards, round):
 
     return selected_guesses
 
+
+def get_best_window_lower_bound(hand_indices, window=13, highest=52):
+    """
+    Determines the lower bound index of the sliding window with the most cards in current player's hand.
+    """
+    if not hand_indices:
+        print("Hand is empty. Defaulting lower bound to 0.")
+        return 0  # Default lower bound when hand is empty
+
+    hand_sorted = sorted(hand_indices) 
+    min_window = 0
+    max_cards_in_window = 0
+
+    for min_card in hand_sorted:
+        # Define the window range, wrapping around if necessary
+        window_end = min_card + window - 1
+        if window_end > highest:
+            # wrap around
+            window_range = list(range(min_card, highest + 1)) + list(range(0, window_end - highest))
+        else:
+            window_range = list(range(min_card, min_card + window))
+
+        # count how many hand cards are within the window
+        cards_in_window = set(hand_sorted).intersection(set(window_range))
+        num_cards = len(cards_in_window)
+
+        if num_cards > max_cards_in_window:
+            max_cards_in_window = num_cards
+            min_window = min_card
+
+    print(f"Optimal window lower bound: {min_window} with {max_cards_in_window} cards in current hand.")
+    return min_window
