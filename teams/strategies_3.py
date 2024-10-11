@@ -1,6 +1,7 @@
 import random
 import numpy as np
 from CardGame import Card, Deck, Player
+import csv
 
 ALL_SUITS = ["Hearts", "Diamonds", "Clubs", "Spades"]
 ALL_VALUES = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
@@ -22,6 +23,7 @@ TEAMMATE_NAME = {
 # give the card with the best seed until they start
 # playing unlikely cards
 SEED_ROUNDS = 2
+SAVE_SEED_SCORE_DATA = True
 
 
 def get_seed(card: Card):
@@ -78,6 +80,15 @@ def card_with_best_seed(player: Player) -> Card:
         if score > highest_score:
             highest_score = score
             card_to_play = card
+
+    if SAVE_SEED_SCORE_DATA and len(player.played_cards) < 12:
+        player.add_seed_score(
+            [
+                player.name,
+                len(player.played_cards) + 1,
+                highest_score / (12 - len(player.played_cards)),
+            ]
+        )
 
     # TODO: plays random card - we can optimize this
     return card_to_play or player.hand[0]
@@ -276,14 +287,14 @@ def playing(player: Player, deck: Deck):
     if not player.hand:
         return None
 
-    if len(player.guesses) < SEED_ROUNDS:
-        card_to_play = card_with_best_seed(player)
-    else:
-        # play the card my teammate is unlikeliest to guess
-        card_to_play = unlikeliest_card(player, deck)
-
     if True:
         card_to_play = card_with_best_seed(player)
+    else:
+        if len(player.guesses) < SEED_ROUNDS:
+            card_to_play = card_with_best_seed(player)
+        else:
+            # play the card my teammate is unlikeliest to guess
+            card_to_play = unlikeliest_card(player, deck)
 
     return player.hand.index(card_to_play)
 
@@ -321,5 +332,11 @@ def guessing(player, cards, round):
         combination = add_likely_cards(player, combination, cards)
     else:
         combination = add_likely_cards(player, [], cards)
+
+    if round == 13 and SAVE_SEED_SCORE_DATA:
+        print(player.seed_scores)
+        with open(f"seed_scores.csv", mode="a", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(player.seed_scores)
 
     return combination
