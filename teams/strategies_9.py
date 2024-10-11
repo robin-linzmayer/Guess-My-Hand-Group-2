@@ -175,11 +175,11 @@ def update_card_probability(player, card_probability):
         correct_guesses = player.cVals[ind]
         total_guesses = len(guesses)
         
-        if ind == 0:
+        # if ind == 0:
             # print("I GUESSED ", total_guesses, " CARDS AND GOT ", correct_guesses, " OF THEM RIGHT LAST TURN.")
-            val_check_arr = []
-            for card in guesses:
-                val_check_arr.append((card.value, card.suit))
+            # val_check_arr = []
+            # for card in guesses:
+            #     val_check_arr.append((card.value, card.suit))
             # print("MY PREV GUESSES: ", val_check_arr)
 
         num = correct_guesses
@@ -187,9 +187,9 @@ def update_card_probability(player, card_probability):
 
         for card in guesses:
             if card not in card_probability:
+                if card in teammate_played_cards:
+                    num -= 1
                 den -= 1
-            elif card in teammate_played_cards:
-                num -= 1
         
         if den > 0:
             guess_prob = num / den
@@ -219,8 +219,8 @@ def update_card_probability(player, card_probability):
                 else:
                     card_probability[card] *= unGuess_prob
 
-        # print("I AM PLAYER ", player.name, " AND THIS IS MY PROBABILITY:")
-        # print_probability_table(card_probability)
+        print("I AM PLAYER ", player.name, " AND THIS IS MY PROBABILITY:")
+        print_probability_table(card_probability)
 
 def print_probability_table(card_probability):
 
@@ -299,7 +299,7 @@ def guessing(player, cards, round):
     Guesses the Anti-Suit based on teammate's exposed card
     """
 
-    card_probability = {card : 1 for card in cards}
+    card_probability = {card : 1 for card in cards} # Initialize to 1
     card_probability = remove_cards_from_hand(player, card_probability)
     card_probability = remove_cards_from_exposed_cards(player, card_probability)
     # print("Guesses: ", PLAYER_GUESSES)
@@ -377,11 +377,16 @@ def guessing(player, cards, round):
     if len(potential_guesses) < num_of_guesses:
         num_of_missing_cards = num_of_guesses - len(potential_guesses)
         extra_guesses = [card for card in card_probability if card not in potential_guesses]
+        print("MY PRECIOUS CARDS: ", sorted(extra_guesses, key=lambda x : card_probability[x], reverse=True)[:num_of_missing_cards])
         potential_guesses.extend(sorted(extra_guesses, key=lambda x : card_probability[x], reverse=True)[:num_of_missing_cards])
 
     if len(potential_guesses) > num_of_guesses:
         potential_guesses = potential_guesses[round:] if len(potential_guesses[round:]) == num_of_guesses else potential_guesses[:num_of_guesses]
+        print("MY PRECIOUS SUITS: ", potential_guesses)
 
+    if len(potential_guesses) ==  num_of_guesses:
+        print("I HAVE PERFECT NUMBER OF GUESSES: ", potential_guesses)
+    
     PLAYER_GUESSES[player.name].append(potential_guesses)
 
     return potential_guesses
