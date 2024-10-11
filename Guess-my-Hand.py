@@ -3,11 +3,18 @@ import random
 import argparse
 import importlib.util
 from tqdm import tqdm
-import sys
 from copy import copy
 from CardGame import Card, Deck, Player
+import numpy as np
+import logging
+import functools
+import io
+import sys
+from contextlib import redirect_stdout
 from player_strategies import NorthSouthStrategy, EastWestStrategy
 from guessing_functions import NorthSouthGuess, EastWestGuess
+
+
 
 class Game:
     def __init__(self, master, seed=42):
@@ -169,7 +176,7 @@ class Game:
             # Update exposed cards for other players
             for j, other_player in enumerate(self.players):
                 other_player.update_exposed_cards(player.name, played_card)
-
+        
         northGuess = NorthSouthGuess(self.players[0], self.copyCards, self.round)
         self.players[0].guesses.append(northGuess)
         eastGuess = EastWestGuess(self.players[1], self.copyCards, self.round)
@@ -238,8 +245,41 @@ def import_class_from_file(folder, file_name, class_name):
     spec.loader.exec_module(module)
     return getattr(module, class_name)
 
+def setup_logger(flag):
+    logger = logging.getLogger(flag)
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(f"{flag}_log.txt")
+    fh.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    return logger
+
+def log_output(flag):
+    logger = setup_logger(flag)
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            original_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            try:
+                result = func(*args, **kwargs)
+                output = sys.stdout.getvalue()
+                if output:
+                    logger.info(f"Function {func.__name__} output:\n{output}")
+                return result
+            finally:
+                sys.stdout = original_stdout
+        return wrapper
+    return decorator
+
+def create_logged_function(func, flag):
+    return log_output(flag)(func)
+
+
 def run_game_without_gui(seed):
     deck = Deck(seed)
+    # print("Seed: ", seed)
     players = [
         Player("North", NorthSouthStrategy),
         Player("East", EastWestStrategy),
@@ -263,30 +303,57 @@ def run_game_without_gui(seed):
             for other_player in players:
                 other_player.update_exposed_cards(player.name, played_card)
         
-    
-    # Calculate final scores
-        northGuess = NorthSouthGuess(players[0], deck.copyCards, round)
-        players[0].guesses.append(northGuess)
-        eastGuess = EastWestGuess(players[1], deck.copyCards, round)
-        players[1].guesses.append(eastGuess)
-        southGuess = NorthSouthGuess(players[2], deck.copyCards, round)
-        players[2].guesses.append(southGuess)
-        westGuess = EastWestGuess(players[3], deck.copyCards, round)
-        players[3].guesses.append(westGuess)
-        cNorth = len(set(northGuess).intersection(set(players[2].hand)))
+        try:
+            northGuess = NorthSouthGuess(players[0], deck.copyCards, round)
+            players[0].guesses.append(northGuess)
+            cNorth = len(set(northGuess).intersection(set(players[2].hand)))
+        except:
+            print("North guessing failed")
+            players[0].guesses.append([random.sample(deck.copyCards, 13 - round)])
+            cNorth = 0
+
         players[0].cVals.append(cNorth)
-        cEast = len(set(eastGuess).intersection(set(players[3].hand)))
+
+        try:
+            eastGuess = EastWestGuess(players[1], deck.copyCards, round)
+            players[1].guesses.append(eastGuess)
+            cEast = len(set(eastGuess).intersection(set(players[3].hand)))
+        except:
+            print("East guessing failed")
+            players[1].guesses.append([random.sample(deck.copyCards, 13 - round)])
+            cEast = 0
+
         players[1].cVals.append(cEast)
-        cSouth = len(set(southGuess).intersection(set(players[0].hand)))
+
+        try:
+            southGuess = NorthSouthGuess(players[2], deck.copyCards, round)
+            players[2].guesses.append(southGuess)
+            cSouth = len(set(southGuess).intersection(set(players[0].hand)))
+
+        except:
+            print("South guessing failed")
+            players[2].guesses.append([random.sample(deck.copyCards, 13 - round)])
+            cSouth = 0
+
         players[2].cVals.append(cSouth)
-        cWest = len(set(westGuess).intersection(set(players[1].hand)))
+
+        try:
+            westGuess = EastWestGuess(players[3], deck.copyCards, round)
+            players[3].guesses.append(westGuess)
+            cWest = len(set(westGuess).intersection(set(players[1].hand)))
+
+        except:
+            print("West guessing failed")
+            players[3].guesses.append([random.sample(deck.copyCards, 13 - round)])
+            cWest = 0
+        
         players[3].cVals.append(cWest)
-        print(f"round: {round} N-{cNorth} S-{cSouth}")
+
         ns_score += cNorth + cSouth
         ew_score += cEast + cWest
         
         round += 1
-    del deck, players, northGuess, southGuess, eastGuess, westGuess
+    del deck, players
     return {"NS": ns_score, "EW": ew_score}
 
 
@@ -298,6 +365,7 @@ if __name__ == "__main__":
     parser.add_argument('--nsGuesses', type=int, choices=range(0, 11), help='North-South Guesses (1-10)')
     parser.add_argument('--ewGuesses', type=int, choices=range(0, 11), help='East-West Guesses (1-10)')
     parser.add_argument('--nSims', type=int, help='Number of simulations to run without GUI')
+    parser.add_argument('--log', type=bool, default=False, help='Log the results to a txt in folder')
     args = parser.parse_args()
 
     folder = "teams"
@@ -311,6 +379,8 @@ if __name__ == "__main__":
         except:
             print("North South Strategy import failed. Using the default strategy")
             pass
+        if args.log:
+            NorthSouthStrategy = create_logged_function(NorthSouthStrategy, f"./log-results/team{args.nsStrategy}-nsStrategy")
 
     if args.ewStrategy in range(0, 11):
         file_name = f"strategies_{args.ewStrategy}"
@@ -320,6 +390,8 @@ if __name__ == "__main__":
         except:
             print("East West Strategy import failed. Using the default strategy")
             pass
+        if args.log:
+            EastWestStrategy = create_logged_function(EastWestStrategy, f"./log-results/team{args.ewStrategy}-ewStrategy")
 
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
@@ -329,6 +401,8 @@ if __name__ == "__main__":
         except:
             print("North South Guesses import failed. Using the default strategy")
             pass
+        if args.log:
+            NorthSouthGuess = create_logged_function(NorthSouthGuess, f"./log-results/team{args.nsGuesses}-nsGuesses")
 
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
@@ -338,24 +412,33 @@ if __name__ == "__main__":
         except:
             print("East West guesses import failed. Using the default strategy")
             pass
+        
+        if args.log:
+            EastWestGuess = create_logged_function(EastWestGuess, f"./log-results/team{args.ewGuesses}-ewGuesses")
+
 
     if args.nSims:
-        total_scores = {"NS": 0, "EW": 0}
         # get consistent sequence of simulations given the seed
-        random.seed(args.seed)
-        for _ in tqdm(range(args.nSims)):
-            seed = random.randint(0, 10000) 
+        seed = args.seed
+        partnership_scoresNS = []
+        partnership_scoresEW = []
+        for i in tqdm(range(args.nSims)):
             scores = run_game_without_gui(seed)
-            total_scores["NS"] += scores["NS"]
-            total_scores["EW"] += scores["EW"]
+            partnership_scoresNS.append(scores["NS"])
+            partnership_scoresEW.append(scores["EW"])
+            seed += 1
         
         avg_scores = {
-            "NS": total_scores["NS"] / args.nSims,
-            "EW": total_scores["EW"] / args.nSims
+            "NS": np.mean(partnership_scoresNS),
+            "EW": np.mean(partnership_scoresEW)
         }
-        print(f"Average scores over {args.nSims} simulations:")
-        print(f"NS: {avg_scores['NS']:.2f}")
-        print(f"EW: {avg_scores['EW']:.2f}")
+        std_scores = {
+            "NS": np.std(partnership_scoresNS),
+            "EW": np.std(partnership_scoresEW)
+        }
+        print(f"Scores over {args.nSims} simulations:")
+        print(f"NS Mean: {avg_scores['NS']:.2f} | NS Std Dev: {std_scores['NS']:.2f}")
+        print(f"EW Mean: {avg_scores['EW']:.2f} | EW Std Dev: {std_scores['EW']:.2f}")
     else:
         print("Running GUI version...")
         import tkinter as tk

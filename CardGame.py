@@ -56,6 +56,8 @@ class Deck:
         self.cards = [Card(suit, value) for suit in self.suits for value in self.values]
         self.copyCards = copy(self.cards)
         random.seed(seed)
+        self.newseed = random.randint(0, 10000)
+        random.seed(seed)
         random.shuffle(self.cards)
 
     def draw(self):

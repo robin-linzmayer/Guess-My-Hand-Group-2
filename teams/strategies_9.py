@@ -6,8 +6,8 @@ from teams.group9.constants import (
     CARD_SHIFT,
     SUIT_VAL,
     TEAMMATE,
-    PLAYER_GUESSES,
-    EXPOSED_CARDS
+    # PLAYER_GUESSES,
+    # EXPOSED_CARDS
 )
 
 """
@@ -115,17 +115,25 @@ def initialize(deck):
     
     return org_deck
 
-def shuffle(deck):
+def shuffle(player, deck, role = 'playing'):
 
     #exclude the cards that are exposed in this round
-    exposed_now = len(EXPOSED_CARDS) % 4
-    if exposed_now != 0:
-        # Remove the excess elements from the end
-        prev_exposed_cards = EXPOSED_CARDS[:-exposed_now]
-    else:
-        prev_exposed_cards = EXPOSED_CARDS
+    # exposed_now = len(EXPOSED_CARDS) % 4
+    # if exposed_now != 0:
+    #     # Remove the excess elements from the end
+    #     prev_exposed_cards = EXPOSED_CARDS[:-exposed_now]
+    # else:
+    #     prev_exposed_cards = EXPOSED_CARDS
+
+    prev_index = min([len(exposed) for exposed in player.exposed_cards.values()])
+    if role == 'guessing':
+        prev_index -= 1
+    prev_exposed_cards = []
+    for exposed in player.exposed_cards.values():
+        prev_exposed_cards += exposed[:prev_index] if len(exposed) > prev_index else exposed
 
     remaining_cards = list(set(deck.cards) - set(prev_exposed_cards))
+    # print(len(remaining_cards))
 
     # Shuffle remaining_cards using the provided seed for consistency
     seed = len(remaining_cards)
@@ -171,7 +179,7 @@ def update_card_probability(player, card_probability):
     total_viable_cards = len(card_probability)
     teammate_played_cards = player.exposed_cards[TEAMMATE[player.name]]
 
-    for ind, guesses in enumerate(PLAYER_GUESSES[player.name]):
+    for ind, guesses in enumerate(player.guesses):
         correct_guesses = player.cVals[ind]
         total_guesses = len(guesses)
         
@@ -233,17 +241,25 @@ def playing(player, deck):
     if not player.hand:
         return None
     
-    for cards in player.exposed_cards.values():
-        for card in cards:
-            if card not in EXPOSED_CARDS:
-                EXPOSED_CARDS.append(card)
+    # for cards in player.exposed_cards.values():
+    #     for card in cards:
+    #         if card not in EXPOSED_CARDS:
+    #             # if player.name == "South":
+    #             print(f'Our exposed cards: {card}')
+    #             EXPOSED_CARDS.append(card)
+    
+    # for key in player.exposed_cards.keys():
+    #     if player.exposed_cards[key] and player.name == "South":
+    #         print(f'Actual exposed cards: {player.exposed_cards[key][-1]}')
     
     # Create dictionary for shuffled deck
     deck = Deck()
     if len(player.hand) == 13:
+        # EXPOSED_CARDS = []
         deck_dict = initialize(deck)
+        # print(deck_dict)
     else:
-        deck_dict = shuffle(deck)
+        deck_dict = shuffle(player, deck)
         # print(f"Shuffled deck: {deck_dict}")
 
     hand = defaultdict(list)
@@ -302,7 +318,7 @@ def guessing(player, cards, round):
     card_probability = {card : 1 for card in cards} # Initialize to 1
     card_probability = remove_cards_from_hand(player, card_probability)
     card_probability = remove_cards_from_exposed_cards(player, card_probability)
-    # print("Guesses: ", PLAYER_GUESSES)
+    # print("Guesses: ", player.guesses)
     # print("Player cVals: ", player.cVals)
     if round > 1:
         update_card_probability(player, card_probability)
@@ -313,21 +329,22 @@ def guessing(player, cards, round):
     if round > 6:
         return sorted([card for card in card_probability.keys()], key = lambda x : card_probability[x], reverse=True)[:num_of_guesses]
     
-    for cards in player.exposed_cards.values():
-        for i in range(len(cards) - 1):
-            if cards[i] not in EXPOSED_CARDS:
-                EXPOSED_CARDS.append(cards[i])
+    # for cards in player.exposed_cards.values():
+    #     for i in range(len(cards) - 1):
+    #         if cards[i] not in EXPOSED_CARDS:
+    #             EXPOSED_CARDS.append(cards[i])
 
     deck = Deck()
     if round == 1:
         deck_dict = initialize(deck)
     else:
-        deck_dict = shuffle(deck)
+        deck_dict = shuffle(player, deck, role='guessing')
         # print(f"Shuffled deck: {deck_dict}")
 
     # teammate_suit = player.exposed_cards[teammate[player.name]][-1].suit
     teammate_card = player.exposed_cards[TEAMMATE[player.name]][-1]
     teammate_suit = 0
+    # print(teammate_card)
     for suit in deck_dict.keys():
         if teammate_card in deck_dict[suit]:
             # print(player.name)
@@ -384,10 +401,14 @@ def guessing(player, cards, round):
         potential_guesses = potential_guesses[round:] if len(potential_guesses[round:]) == num_of_guesses else potential_guesses[:num_of_guesses]
         print("MY PRECIOUS SUITS: ", potential_guesses)
 
+<<<<<<< HEAD
     if len(potential_guesses) ==  num_of_guesses:
         print("I HAVE PERFECT NUMBER OF GUESSES: ", potential_guesses)
     
     PLAYER_GUESSES[player.name].append(potential_guesses)
+=======
+    # PLAYER_GUESSES[player.name].append(potential_guesses)
+>>>>>>> 206a1255332cf732acb1abad1d41975d5f07ad5b
 
     return potential_guesses
 
