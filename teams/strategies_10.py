@@ -1,84 +1,54 @@
-import numpy as np
+import random
 from CardGame import Card
+from copy import copy
+import numpy as np
+
+
+def randomize_card_mapping(deck_cards, seed):
+    """
+    Randomizes the mapping of the entire deck to indices using the given seed.
+    """
+    random.seed(seed)
+    
+    # Shuffle the deck cards using the provided seed
+    shuffled_indices = list(range(len(deck_cards)))
+    random.shuffle(shuffled_indices)
+    
+    # Create a mapping of each card in the deck to a random index
+    card_to_random_map = {card: shuffled_indices[i] for i, card in enumerate(deck_cards)}
+    return card_to_random_map
 
 
 def playing(player, deck):
-    """
-    Wrap-around min-max strategy
-    """
-    if not player.hand:
-        return None
+    global seeds
+    # Determine the random seed to use based on the number of cards already played
+    random_seed_index = len(player.played_cards)
+    print(f"Random seed index in playing is {random_seed_index}.")
+    random_seed = seeds[random_seed_index]
+    print(f"Random seed in playing is {random_seed}.")
 
-    # Represent original player hand as a boolean array
-    my_hand = np.zeros(DECK_SIZE, dtype=bool)
-    for my_card in player.hand + player.played_cards:
-        card_idx = convert_card_to_index(my_card)
-        my_hand[card_idx] = True
+    # Get the random mapping for the entire deck
+    card_mapping = randomize_card_mapping(deck.copyCards, random_seed)
 
-    # Find largest gap between adjacent cards and update min_index.
-    # NOTE: min_index is the higher end of the gap (i.e., wrap-around).
-    my_hand_indices = np.where(my_hand)[0]
-    max_gap = 0
-    min_index = None
-    for i in range(OPENING_HAND_SIZE - 1):
-        gap = my_hand_indices[i+1] - my_hand_indices[i]
-        if gap > max_gap:
-            max_gap = gap
-            min_index = my_hand_indices[i+1]
+    # Find the card in the player's hand that has the maximum random mapping value
+    max_card = max(player.hand, key=lambda card: card_mapping[card])
+    print(f"Max card mapping for the card {player.name}: {card_mapping[max_card]}")
+
+    return player.hand.index(max_card)
+
     
-    # Check wrap-around gap
-    wrap_around_gap = my_hand_indices[0] + DECK_SIZE - my_hand_indices[-1]
-    if wrap_around_gap > max_gap:
-        max_gap = wrap_around_gap
-        min_index = my_hand_indices[0]
-
-    # Play min_index card in odd rounds and max_index card in even rounds
-    start_idx = np.where(my_hand_indices == min_index)[0][0]
-    reordered_indices = np.concatenate((my_hand_indices[start_idx:], my_hand_indices[:start_idx]))
-    
-    # print(f'reordered_indices: {reordered_indices}')
-    
-    round = len(player.played_cards) + 1
-    if round % 2 == 1:
-        # Play min_index card
-        for idx in reordered_indices:
-            card = convert_index_to_card(idx)
-            if card in player.hand:
-                return player.hand.index(card)
-    else:
-        # Play max_index card
-        for idx in reordered_indices[::-1]:
-            card = convert_index_to_card(idx)
-            if card in player.hand:
-                return player.hand.index(card)
-            
-
 def guessing(player, cards, round):
     """
     Update available guesses and probabilities and return the top guesses by probability
     """
+    
     # Initialize available guesses and probabilities
     available_guesses = np.ones(DECK_SIZE, dtype=bool)
     probabilities = np.full(DECK_SIZE, PAR_PROBABILITY, dtype=float)
 
-    # Track partner's min/max
-    partner_name = partner[player.name]
-    if round % 2 == 1:
-        min_card = player.exposed_cards[partner_name][-1]
-        max_card = player.exposed_cards[partner_name][-2] if round > 1 else None
-    else:
-        max_card = player.exposed_cards[partner_name][-1]
-        min_card = player.exposed_cards[partner_name][-2]
-
-    min_idx = convert_card_to_index(min_card)
-    max_idx = convert_card_to_index(max_card) if max_card else (min_idx - 4) % DECK_SIZE
-
     # Update available guesses and probabilities
-    update_available_guesses(player, available_guesses, min_idx, max_idx)
-    update_probabilities(player, round, available_guesses, probabilities)
-
-    # Debugging
-    # print(f'probabilities: {probabilities}')
+    available_guesses = update_available_guesses(player, available_guesses, cards, round)
+    probabilities = update_probabilities(player, round, available_guesses, probabilities)
     
     # Return top guesses by probability
     candidate_guesses = probabilities.argsort()[::-1][:13-round]
@@ -86,11 +56,13 @@ def guessing(player, cards, round):
     return guesses
 
 
-def update_available_guesses(player, available_guesses, min_idx, max_idx):
+def update_available_guesses(player, available_guesses, cards, round):
     """
     Update available guesses by removing cards in hand, played and exposed cards,
     as well as cards outside of partner's min/max
     """
+    global seeds
+
     for my_card in player.hand:
         card_idx = convert_card_to_index(my_card)
         available_guesses[card_idx] = False
@@ -103,10 +75,26 @@ def update_available_guesses(player, available_guesses, min_idx, max_idx):
         for exposed_card in exposed_card_lst:
             card_idx = convert_card_to_index(exposed_card)
             available_guesses[card_idx] = False
+    
+    for i, guess in enumerate(player.guesses):
+        if player.cVals[i] == 0:
+            for card in guess:
+                if card in cards:
+                    cards.remove(card)
 
-    # Remove cards outside of partner's min/max
-    for i in range(max_idx + 1, min_idx):
-        available_guesses[i % DECK_SIZE] = False
+    for i in range(1, round+1):
+        random_seed_index = i - 1
+        print(f"Random seed index in guessing is {random_seed_index}.")
+        random_seed = seeds[random_seed_index]
+        print(f"Random seed in guessing is {random_seed}.")
+        card_mapping = randomize_card_mapping(copy(cards), random_seed)
+        partner_card = player.exposed_cards[PARTNERS[player.name]][i-1]
+        removed_cards = [card for card in copy(cards) if card_mapping[card] > card_mapping[partner_card]]
+        for removed_card in removed_cards:
+            card_idx = convert_card_to_index(removed_card)
+            available_guesses[card_idx] = False
+    
+    return available_guesses
 
 
 def update_probabilities(player, round, available_guesses, probabilities):
@@ -134,6 +122,7 @@ def update_probabilities(player, round, available_guesses, probabilities):
             accuracy = numerator / denominator if denominator > 0 else 0
             if available_guesses[card_idx]:
                 probabilities[card_idx] = accuracy
+    return probabilities
 
 
 def convert_card_to_index(card):
@@ -156,9 +145,24 @@ def convert_index_to_card(index):
     return Card(suit, value)
 
 
+def randomize_card_mapping(deck_cards, seed):
+    """
+    Randomizes the mapping of the entire deck to indices using the given seed.
+    """
+    random.seed(seed)
+    
+    # Shuffle the deck cards using the provided seed
+    shuffled_indices = list(range(len(deck_cards)))
+    random.shuffle(shuffled_indices)
+    
+    # Create a mapping of each card in the deck to a random index
+    card_to_random_map = {card: shuffled_indices[i] for i, card in enumerate(deck_cards)}
+    return card_to_random_map
+
 """
 Static global variables
 """
+seeds = list(range(13))     
 DECK_SIZE = 52
 OPENING_HAND_SIZE = 13
 PAR_PROBABILITY = 1/3
@@ -185,4 +189,11 @@ opponents = {
     "East": ["South", "North"],
     "South": ["West", "East"],
     "West": ["North", "South"]
+}
+
+PARTNERS = {
+    'North': 'South',
+    'East': 'West',
+    'South': 'North',
+    'West': 'East',
 }
