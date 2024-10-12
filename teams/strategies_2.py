@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 # Shared global variables
 PARTNERS = {
@@ -24,6 +25,11 @@ VALUE_ORDER = {
     "A": 8,
 }
 
+##### Tom (10/12): ###
+REVERSE_SUIT_ORDER = {0: 'Hearts', 2: 'Diamonds', 1: 'Clubs', 3: 'Spades'} # Guessing func uses it to decode
+REVERSE_VALUE_ORDER = {7: '2', 10: '3', 4: '4', 5: '5', 11: '6', 3: '7', 2: '8', 13: '9', 6: '10', 1: 'J', 9: 'Q', 12: 'K', 8: 'A'}
+######################
+
 def playing(player, deck):
     """
     Playing strategy goes here (what card will the player expose to their partner)
@@ -43,8 +49,9 @@ def playing(player, deck):
         print(f"{player.name} will play card at index {min_window_index}")
 
         # Print the window that the partner will guess
-        partner_window = list(range(min_window_index+1, min_window_index + 13))
+        partner_window = [((min_window_index + i) % 52) or 52 for i in range(1, 13)]  # Added Wrap-around
         print(f"Partner will guess cards in the window: {partner_window}")
+        return hand_indices.index(min_window_index)
 
     return card_to_play_index
 
@@ -173,6 +180,29 @@ def guessing(player, cards, round):
     # Remove cards from list that are not valid guesses for this round.
     g_cards = get_guessable_cards(player, cards)
     print(f"Round {round}: Guessable cards after filtering: {g_cards}")
+
+
+    ################# Tom (10/12): ###############
+    if round == 1:
+        # get the last exposed card from the partner
+        partner_exposed_card = player.exposed_cards[PARTNERS[player.name]][-1]
+        # find the leftmost index of that sliding window
+        sliding_window_leftmost_index = get_card_index(partner_exposed_card) + 1
+        # find the list of indices of the 12 cards within the sliding window. Wrap the indices around when they > 52
+        sliding_window_list = [((sliding_window_leftmost_index + i) % 52) or 52 for i in range(12)]
+        filtered_cards = []
+        for card in g_cards:
+            if get_card_index(card) in sliding_window_list:
+                # add the card into the final list if 1. its in the sliding window; AND 2. its in g_cards
+                filtered_cards.append(card)
+                g_cards.remove(card)
+        # Some cards in the sliding window have already been eliminated (either exposed already or on our hand)
+        # Therefore, we don't guess these cards and can save these guesses for other random guesses.
+        while len(filtered_cards) < 12:
+            filtered_cards.append(random.choice(g_cards))
+        return filtered_cards
+    ##############################################
+
 
     # Apply strategy to narrow possible cards
     s_cards = use_max_value_index(player, g_cards)
