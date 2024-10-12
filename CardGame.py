@@ -12,6 +12,13 @@ class Card:
     def __str__(self):
         return f"{self.value} of {self.suit}"
     
+
+    def __hash__(self):
+        return hash((self.suit, self.value))
+
+    def __eq__(self, other):
+        return (self.suit, self.value) == (other.suit, other.value)
+
     def __repr__(self):
         return str(self)
 
@@ -48,6 +55,8 @@ class Deck:
         self.values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
         self.cards = [Card(suit, value) for suit in self.suits for value in self.values]
         self.copyCards = copy(self.cards)
+        random.seed(seed)
+        self.newseed = random.randint(0, 10000)
         random.seed(seed)
         random.shuffle(self.cards)
 
