@@ -57,7 +57,9 @@ def generate_permutation(perm_size, cards, seed):
 
 def get_unguessed_cards(player):
     """Get all cards that have not been guessed by the player."""
-    exposed_set = set(chain.from_iterable(player.exposed_cards.values())) | set(player.played_cards)
+    exposed_set = set(chain.from_iterable(player.exposed_cards.values())) | set(
+        player.played_cards
+    )
     unguessed_cards = [card for card in DECK if card not in exposed_set]
 
     # Add the last exposed card from each player
@@ -132,7 +134,7 @@ def round_1_strategy(player, remaining_cards):
     return selected_cards[:12]
 
 
-def update_probabilities_from_c_vals(player, probabilities,game_round):
+def update_probabilities_from_c_vals(player, probabilities, game_round):
     """Update probabilities of remaining cards based on c values and guess history."""
     cvals, guesses = update_c_vals_and_guesses(player)
     prob = probabilities.copy()
@@ -147,32 +149,34 @@ def update_probabilities_from_c_vals(player, probabilities,game_round):
             if card not in guess or player.cVals[i] != 0
         }
 
-        if game_round >=3 and flag == False:
+        if game_round >= 3 and flag == False:
             flag = True
             prev_guess = guesses[-2]
             prev_cval = cvals[-2]
             pres_guess = guesses[-1]
-            pres_cval =cvals[-1]
-            print("/nPlayer: ",player.name)
+            pres_cval = cvals[-1]
+            print("/nPlayer: ", player.name)
             print()
-            print(pres_cval,prev_cval)
+            print(pres_cval, prev_cval)
             better_cards = []
             worse_cards = []
             best_cards = []
-            if pres_cval>prev_cval:
+            if pres_cval > prev_cval:
                 print("Guesses:")
-                print(pres_guess,prev_guess)
-                better_cards = [card for card in set(pres_guess)-set(prev_guess)]
+                print(pres_guess, prev_guess)
+                better_cards = [card for card in set(pres_guess) - set(prev_guess)]
                 print(f"\nPlayer: {player.name}")
-                print("Here",better_cards)
-            elif pres_cval<prev_cval:
-                print(pres_cval,prev_cval)
-                worse_cards = [card for card in set(prev_guess)-set(pres_guess)]
+                print("Here", better_cards)
+            elif pres_cval < prev_cval:
+                print(pres_cval, prev_cval)
+                worse_cards = [card for card in set(prev_guess) - set(pres_guess)]
                 print(f"\nPlayer: {player.name}")
-                print("There",worse_cards)
+                print("There", worse_cards)
             else:
-                best_cards = [card for card in set(pres_guess).intersection(set(prev_guess))]  
-                print("Else",better_cards)
+                best_cards = [
+                    card for card in set(pres_guess).intersection(set(prev_guess))
+                ]
+                print("Else", better_cards)
             for card in prob:
                 if card in better_cards:
                     prob[card] *= 9
@@ -192,7 +196,7 @@ def update_probabilities_from_c_vals(player, probabilities,game_round):
             else:  # Boost unguessed cards
                 if len(guess) - c:
                     prob[card] *= (len(guess) - c) / len(guess)
-    
+
     return prob
 
 
@@ -268,7 +272,7 @@ def guessing(player: Player, cards, game_round):
         * (0.0013 if card.suit == MIN_SUIT[player.name] else 1)
         for card in remaining_cards
     }
-    prob = update_probabilities_from_c_vals(player, prob,game_round)
+    prob = update_probabilities_from_c_vals(player, prob, game_round)
 
     if game_round <= 10:
         prob = update_probabilities_for_min_max(
