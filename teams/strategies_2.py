@@ -25,11 +25,6 @@ VALUE_ORDER = {
     "A": 8,
 }
 
-##### Tom (10/12): ###
-REVERSE_SUIT_ORDER = {0: 'Hearts', 2: 'Diamonds', 1: 'Clubs', 3: 'Spades'} # Guessing func uses it to decode
-REVERSE_VALUE_ORDER = {7: '2', 10: '3', 4: '4', 5: '5', 11: '6', 3: '7', 2: '8', 13: '9', 6: '10', 1: 'J', 9: 'Q', 12: 'K', 8: 'A'}
-######################
-
 def playing(player, deck):
     """
     Playing strategy goes here (what card will the player expose to their partner)
@@ -38,20 +33,15 @@ def playing(player, deck):
         return None
 
     print(" ")
-    print(f"-------------- Playing: {player.name} -----------------")
+    print(f"-------------- Playing: {player.name}, Round: {len(player.played_cards) + 1} -----------------")
 
     hand_indices = [get_card_index(card) for card in player.hand]
-    card_to_play_index = get_max_card(hand_indices)
     round = len(player.played_cards) + 1
     
     if round == 1:
-        min_window_index = get_best_window_lower_bound(hand_indices)
-        print(f"{player.name} will play card at index {min_window_index}")
-
-        # Print the window that the partner will guess
-        partner_window = [((min_window_index + i) % 52) or 52 for i in range(1, 13)]  # Added Wrap-around
-        print(f"Partner will guess cards in the window: {partner_window}")
-        return hand_indices.index(min_window_index)
+        card_to_play_index = get_best_window_lower_bound(hand_indices)
+    else:
+        card_to_play_index = get_max_card(hand_indices)
 
     return card_to_play_index
 
@@ -105,7 +95,6 @@ def get_card_prob(player, s_cards, round):
     P = 13 - round    # Number of cards in your Partner's hand
     T = len(s_cards)  # Number of cards that could be in partner's hand based on Strategy (all possible cards to build our guess from)
     probs = [1 / T] * T
-    print(f"P: {P}, T: {T}")
 
     if P == T or round == 1:
         return probs
@@ -120,10 +109,6 @@ def get_card_prob(player, s_cards, round):
 
         if G == 0:
             return probs
-
-        print(f"Possible cards: {len(s_cards)}, {s_cards}")
-        print(f"Guesses: {G}, {adj_guess}")
-        print(f"cval: {C}")
 
         # There are cases where the previous guesses have had cards eliminated to the cvalue given is higher than the number of cards that are possible to include in our guess.
         if C >= G or T <= P:
@@ -149,7 +134,6 @@ def get_card_prob(player, s_cards, round):
 
         # Add a check to ensure the probabilities sum to 1
         total_sum = sum(probs)
-        print("total_sum is: " + str(total_sum))
         if total_sum != 1:
             # force to renomrmalize
             probs = [p / total_sum for p in probs]
@@ -179,45 +163,22 @@ def guessing(player, cards, round):
 
     # Remove cards from list that are not valid guesses for this round.
     g_cards = get_guessable_cards(player, cards)
-    print(f"Round {round}: Guessable cards after filtering: {g_cards}")
+    print(f"Round {round}: Guessable cards after filtering: {len(g_cards)}")
 
-
-    ################# Tom (10/12): ###############
     if round == 1:
-        # get the last exposed card from the partner
-        partner_exposed_card = player.exposed_cards[PARTNERS[player.name]][-1]
-        # find the leftmost index of that sliding window
-        sliding_window_leftmost_index = get_card_index(partner_exposed_card) + 1
-        # find the list of indices of the 12 cards within the sliding window. Wrap the indices around when they > 52
-        sliding_window_list = [((sliding_window_leftmost_index + i) % 52) or 52 for i in range(12)]
-        filtered_cards = []
-        for card in g_cards:
-            if get_card_index(card) in sliding_window_list:
-                # add the card into the final list if 1. its in the sliding window; AND 2. its in g_cards
-                filtered_cards.append(card)
-                g_cards.remove(card)
-        # Some cards in the sliding window have already been eliminated (either exposed already or on our hand)
-        # Therefore, we don't guess these cards and can save these guesses for other random guesses.
-        while len(filtered_cards) < 12:
-            filtered_cards.append(random.choice(g_cards))
-        return filtered_cards
-    ##############################################
-
+        selected_guesses = use_best_window_lower_bound(player, g_cards)
+        return selected_guesses
 
     # Apply strategy to narrow possible cards
     s_cards = use_max_value_index(player, g_cards)
-    print(f"Round {round}: Cards after applying max value index strategy: {s_cards}")
 
     if not s_cards:
-        print(f"Round {round}: No guessable cards available after applying strategy.")
         return []
 
     # Update probability of possible cards
     p_cards = get_card_prob(player, s_cards, round)
-    print(f"Round {round}: Probabilities of guessable cards: {p_cards}")
 
     if not p_cards or len(p_cards) != len(s_cards):
-        print(f"Round {round}: Invalid probability distribution. Assigning uniform probabilities.")
         p_cards = [1 / len(s_cards)] * len(s_cards)
 
     # Pair each card with its probability
@@ -225,21 +186,40 @@ def guessing(player, cards, round):
 
     # Sort the pairs based on probability in descending order
     sorted_pairs = sorted(card_prob_pairs, key=lambda pair: pair[1], reverse=True)
-    print(f"Round {round}: Sorted guessable cards by probability: {sorted_pairs}")
 
     # Select the top N cards based on the current round
     selected_guesses = [card for card, prob in sorted_pairs[:num_guesses]]
-    print(f"Round {round}: Selected guesses: {selected_guesses}")
 
     return selected_guesses
 
+def use_best_window_lower_bound(player, g_cards, window=12, highest=52):
+    # get the last exposed card from the partner
+    partner_exposed_card = player.exposed_cards[PARTNERS[player.name]][-1]
+    # find the leftmost index of that sliding window
+    sliding_window_leftmost_index = get_card_index(partner_exposed_card)
+
+    # Get all cards in your hand that are in the window above the card that was exposed (a lower bound)
+    g_card_indices = [get_card_index(card) for card in g_cards]
+
+    guess = [val for val in g_card_indices if sliding_window_leftmost_index < val]
+    guess.sort()
+    # Fewer that the 12 guesses needed we take cards from the wrapped around bottom of the index range
+    if len(guess) < window:
+        max_window = window - len(guess)
+        g_card_indices.sort()
+        guess = guess + g_card_indices[:max_window]
+    else:
+        guess = guess[:window]
+
+    original_g_card_indices = [g_card_indices.index(g) for g in guess]
+    selected_guesses = [g_cards[i] for i in original_g_card_indices]
+    return selected_guesses
 
 def get_best_window_lower_bound(hand_indices, window=13, highest=52):
     """
     Determines the lower bound index of the sliding window with the most cards in current player's hand.
     """
     if not hand_indices:
-        print("Hand is empty. Defaulting lower bound to 0.")
         return 0  # Default lower bound when hand is empty
 
     hand_sorted = sorted(hand_indices) 
@@ -251,9 +231,9 @@ def get_best_window_lower_bound(hand_indices, window=13, highest=52):
         window_end = min_card + window - 1
         if window_end > highest:
             # wrap around
-            window_range = list(range(min_card, highest + 1)) + list(range(0, window_end - highest))
+            window_range = list(range(min_card+1, highest + 1)) + list(range(0, window_end - highest))
         else:
-            window_range = list(range(min_card, min_card + window))
+            window_range = list(range(min_card+1, min_card + window))
 
         # count how many hand cards are within the window
         cards_in_window = set(hand_sorted).intersection(set(window_range))
@@ -263,5 +243,4 @@ def get_best_window_lower_bound(hand_indices, window=13, highest=52):
             max_cards_in_window = num_cards
             min_window = min_card
 
-    print(f"Optimal window lower bound: {min_window} with {max_cards_in_window} cards in current hand.")
-    return min_window
+    return hand_indices.index(min_window)
