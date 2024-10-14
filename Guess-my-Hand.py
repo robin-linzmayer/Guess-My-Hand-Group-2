@@ -365,6 +365,7 @@ if __name__ == "__main__":
     parser.add_argument('--nsGuesses', type=int, choices=range(0, 11), help='North-South Guesses (1-10)')
     parser.add_argument('--ewGuesses', type=int, choices=range(0, 11), help='East-West Guesses (1-10)')
     parser.add_argument('--nSims', type=int, help='Number of simulations to run without GUI')
+    parser.add_argument('--log', type=bool, default=False, help='Log the results to a txt in folder')
     args = parser.parse_args()
 
     folder = "teams"
@@ -378,7 +379,8 @@ if __name__ == "__main__":
         except:
             print("North South Strategy import failed. Using the default strategy")
             pass
-        NorthSouthStrategy = create_logged_function(NorthSouthStrategy, f"./log-results/team{args.nsStrategy}-nsStrategy")
+        if args.log:
+            NorthSouthStrategy = create_logged_function(NorthSouthStrategy, f"./log-results/team{args.nsStrategy}-nsStrategy")
 
     if args.ewStrategy in range(0, 11):
         file_name = f"strategies_{args.ewStrategy}"
@@ -388,7 +390,8 @@ if __name__ == "__main__":
         except:
             print("East West Strategy import failed. Using the default strategy")
             pass
-        EastWestStrategy = create_logged_function(EastWestStrategy, f"./log-results/team{args.ewStrategy}-ewStrategy")
+        if args.log:
+            EastWestStrategy = create_logged_function(EastWestStrategy, f"./log-results/team{args.ewStrategy}-ewStrategy")
 
     if args.nsGuesses in range(0, 11):
         file_name = f"strategies_{args.nsGuesses}"
@@ -398,8 +401,8 @@ if __name__ == "__main__":
         except:
             print("North South Guesses import failed. Using the default strategy")
             pass
-
-        NorthSouthGuess = create_logged_function(NorthSouthGuess, f"./log-results/team{args.nsGuesses}-nsGuesses")
+        if args.log:
+            NorthSouthGuess = create_logged_function(NorthSouthGuess, f"./log-results/team{args.nsGuesses}-nsGuesses")
 
     if args.ewGuesses in range(0, 11):
         file_name = f"strategies_{args.ewGuesses}"
@@ -409,8 +412,9 @@ if __name__ == "__main__":
         except:
             print("East West guesses import failed. Using the default strategy")
             pass
-
-        EastWestGuess = create_logged_function(EastWestGuess, f"./log-results/team{args.ewGuesses}-ewGuesses")
+        
+        if args.log:
+            EastWestGuess = create_logged_function(EastWestGuess, f"./log-results/team{args.ewGuesses}-ewGuesses")
 
 
     if args.nSims:
