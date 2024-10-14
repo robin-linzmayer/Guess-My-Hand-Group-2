@@ -106,7 +106,7 @@ def create_hash_map(cards, index_to_care_about):
     print("Total Combos: ", totalCombos)
     hash_map = {i: [] for i in range(math.factorial(num_cards_to_send))} 
     
-    for combo in tqdm(combos, desc="Hashing combinations", unit="combo", total=totalCombos):
+    for combo in combos:
         # sorted_combo = sorted(combo, key=get_card_value)
         hash_value = hash_combination(combo)
         if hash_value == index_to_care_about:
