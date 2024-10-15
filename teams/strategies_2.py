@@ -97,13 +97,19 @@ def clean_guess_history(player, s_cards):
         r_guess = player.guesses[r]
         cleaned_guess = [g for g in r_guess if g in s_cards]
 
+        # We need to decrement the cValue from our guess for every card that our partner has exposed from their hand that was in the guess.
+        cval_adjustment = 0
+        for partner_exposed in player.exposed_cards[PARTNERS[player.name]]:
+            if partner_exposed in cleaned_guess:
+                cval_adjustment += 1
+
         # If cards were removed from the round also adjust the cValue
-        num_removed = len(r_guess) - len(cleaned_guess)
-        adj_cval = player.cVals[r] - num_removed
+        adj_cval = player.cVals[r] - cval_adjustment
 
         # Write out the adjusted round
         cleaned_guesses = cleaned_guesses + [cleaned_guess]
         cleaned_cvals = cleaned_cvals + [adj_cval]
+
     return cleaned_guesses, cleaned_cvals
 
 def get_card_prob(player, s_cards, round):
