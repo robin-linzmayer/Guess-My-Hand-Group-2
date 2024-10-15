@@ -24,6 +24,7 @@ VALUE_ORDER = {
     "K": 12,
     "A": 8,
 }
+NUM_WINDOW_ROUNDS = 5
 
 def playing(player, deck):
     """
@@ -38,7 +39,7 @@ def playing(player, deck):
     hand_indices = [get_card_index(card) for card in player.hand]
     round = len(player.played_cards) + 1
     
-    if round == 1:
+    if round <= NUM_WINDOW_ROUNDS:
         card_to_play_index = get_best_window_lower_bound(hand_indices)
     else:
         card_to_play_index = get_max_card(hand_indices)
@@ -189,7 +190,7 @@ def guessing(player, cards, round):
     g_cards = get_guessable_cards(player, cards)
     print(f"Round {round}: Guessable cards after filtering: {len(g_cards)}")
 
-    if round == 1:
+    if round <= NUM_WINDOW_ROUNDS:
         selected_guesses = use_best_window_lower_bound(player, g_cards)
         return selected_guesses
 
