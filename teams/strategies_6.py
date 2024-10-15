@@ -1,14 +1,11 @@
 import random
-import time
-import math
 from CardGame import Card
 
 random_seed = 11024891
 
 def playing(player, deck):
     """
-    Playing min/max boundaries strategy.
-    
+    Playing the greedy min/max strategy.
     Returns an integer representing the index of the card in the player's hand to play.
     """
     if not player.hand:
@@ -17,30 +14,45 @@ def playing(player, deck):
     deck = get_deck_of_cards()
     cards_to_indices = create_card_to_index_mapping(random_seed, deck)
     turn = 14 - len(player.hand)
+    valid_cards_in_hand = sorted(player.hand, key=lambda card: cards_to_indices[card])
 
-    if turn < 9:
-        # play greedy min/max variant
-        prev_min = 0
-        prev_max = 53
-        for card in player.played_cards:
-            if (cards_to_indices[card] - prev_min) < (prev_max - cards_to_indices[card]):
-                prev_min = cards_to_indices[card]
-            else:
-                prev_max = cards_to_indices[card]
+    prev_min = 0
+    prev_max = 53
 
+    # Reconstruct information passed to guesser
+    for card in player.played_cards:
+        if (cards_to_indices[card] - prev_min) < (prev_max - cards_to_indices[card]):
+            if (cards_to_indices[card] - prev_min) == 2:
+                prev_max -= 1
+                valid_cards_in_hand = valid_cards_in_hand[:-1]
+
+            prev_min = cards_to_indices[card]
+        else:
+            if (prev_max - cards_to_indices[card]) == 1:
+                prev_min += 1
+                valid_cards_in_hand = valid_cards_in_hand[1:]
+                
+            prev_max = cards_to_indices[card]
+
+    # Determine next card to play
+    if len(valid_cards_in_hand) <= 2:
         curr_min_card = min(player.hand, key=lambda card: cards_to_indices[card])
         curr_max_card = max(player.hand, key=lambda card: cards_to_indices[card])
+    else:
+        curr_min_card = valid_cards_in_hand[0]
+        curr_max_card = valid_cards_in_hand[-1]
 
+    if turn < 9:
         if (cards_to_indices[curr_min_card] - prev_min) > (prev_max - cards_to_indices[curr_max_card]):
             card_to_play = curr_min_card
         else:
             card_to_play = curr_max_card
     elif turn % 2 == 0:
         # on even turns, play card with highest index value
-        card_to_play = max(player.hand, key=lambda card: cards_to_indices[card])
+        card_to_play = curr_max_card
     else:
         # on odd turns, play card with lowest index value
-        card_to_play = min(player.hand, key=lambda card: cards_to_indices[card])
+        card_to_play = curr_min_card
     
     return player.hand.index(card_to_play)
 
@@ -48,21 +60,25 @@ def guessing(player, cards, round):
     """
     Returns a list of n Card objects to guess partner's hand, incorporating feedback from previous guesses.
     """
-    card_probs_by_index = {index: 1/52 for index in range(1, 53)}
-    partner = get_partner(player.name)
-
     deck = get_deck_of_cards()
     cards_to_indices, indices_to_cards = create_card_to_index_mapping(random_seed, deck, True)
 
+    card_probs_by_index = {index: 1/52 for index in range(1, 53)}
+    partner = get_partner(player.name)
+    certain_cards = []
     all_other_cards_exposed = []
     partner_cards_exposed = []
+    partner_indices_exposed = []
+
     for player_name, cards in player.exposed_cards.items():
         if player_name == partner:
             partner_cards_exposed += cards
+            for card in cards:
+                partner_indices_exposed.append(cards_to_indices[card])
         else:
             all_other_cards_exposed += cards
     
-    # Delete cards of your own
+    # Delete cards in your own hand
     for own_card in list(set(player.hand)):
         del card_probs_by_index[cards_to_indices[own_card]]
     
@@ -79,12 +95,20 @@ def guessing(player, cards, round):
             # partner playing greedy min/max
             if (played_card - prev_min) < (prev_max - played_card):
                 # partner played a minimum card
+                if (played_card - prev_min) == 2:
+                    prev_max -= 1
+                    certain_cards.append(prev_max)
+
                 prev_min = played_card
-                indices_to_delete = [index for index in card_probs_by_index if index < played_card]
+                indices_to_delete = [index for index in card_probs_by_index if index < played_card or index == prev_max]
             else:
                 # partner played a maximum card
+                if (prev_max - played_card) == 1:
+                    prev_min += 1
+                    certain_cards.append(prev_min)
+                
                 prev_max = played_card
-                indices_to_delete = [index for index in card_probs_by_index if index > played_card]
+                indices_to_delete = [index for index in card_probs_by_index if index > played_card or index == prev_min]
         elif (turn + 1) % 2 == 0:
             indices_to_delete = [index for index in card_probs_by_index if index > played_card]
         else:
@@ -99,7 +123,17 @@ def guessing(player, cards, round):
     # Determine your guesses by finding n cards with highest probabilities
     n = 13 - round
     sorted_card_probs_by_index = sorted(card_probs_by_index, key=card_probs_by_index.get, reverse=True)
-    top_n_card_prob_indices = sorted_card_probs_by_index[:n]
+    valid_certain_cards = list(set(certain_cards) - set(partner_indices_exposed))
+    top_n_card_prob_indices = []
+    
+    if not certain_cards:
+        if n == 12:
+            top_n_card_prob_indices = sorted_card_probs_by_index[-n:]
+        else:
+            top_n_card_prob_indices = sorted_card_probs_by_index[:n]
+    else:
+        valid_certain_cards = list(set(certain_cards) - set(partner_indices_exposed))
+        top_n_card_prob_indices = sorted_card_probs_by_index[:(n - len(valid_certain_cards))] + valid_certain_cards
 
     card_guesses = []
     for index in top_n_card_prob_indices:
@@ -113,8 +147,6 @@ def update_probs_from_guesses(card_probs_by_index, player, partner_cards_exposed
     """
     for turn, (guess, c_val) in enumerate(zip(player.guesses, player.cVals)):
         guess = set(guess)
-        # if player.name == "North":
-        #     print(f"Guess cVal: {c_val}")
         all_other_cards_exposed = set(all_other_cards_exposed)
         correct_guess_count = c_val
         valid_guess_count = len(guess)
@@ -130,12 +162,6 @@ def update_probs_from_guesses(card_probs_by_index, player, partner_cards_exposed
                 exposed_card_count -= 1
         
         valid_unguessed_count = 39 - 4*(turn+1) - len(guess) - exposed_card_count + 1
-
-        # if player.name == "North":
-        #     print(f"Numerator: {correct_guess_count}")
-        #     print(f"Denominator: {valid_guess_count}")
-        #     print(f"Guess probability = {correct_guess_count} / {valid_guess_count}")
-        #     print(f"NonGuess probability = {12 - turn - c_val} / {valid_unguessed_count}")
         
         indices_to_delete = []
         for card in guess:
@@ -152,7 +178,7 @@ def update_probs_from_guesses(card_probs_by_index, player, partner_cards_exposed
             card = indices_to_cards[card_idx]
             if card not in guess:
                 if valid_unguessed_count > 0:
-                    prob = (len(guess) - c_val + 1) / valid_unguessed_count
+                    prob = (len(guess) - c_val + 0.9) / valid_unguessed_count
                     if prob >= 0:
                         card_probs_by_index[card_idx] *= prob
                     else:
