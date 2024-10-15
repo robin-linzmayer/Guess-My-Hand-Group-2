@@ -33,9 +33,6 @@ def playing(player, deck):
     if not player.hand:
         return None
 
-    print(" ")
-    print(f"-------------- Playing: {player.name}, Round: {len(player.played_cards) + 1} -----------------")
-
     hand_indices = [get_card_index(card) for card in player.hand]
     round = len(player.played_cards) + 1
     
@@ -175,20 +172,14 @@ def guessing(player, cards, round):
     :param round: Integer representing the current round number.
     :return: List of guessed Card objects.
     """
-    print(" ")
-    print(f"-------------- Guessing: {player.name}, Round: {round} -----------------")
-
     # Determine the number of guesses needed
     num_guesses = 13 - round
-    print(f"Round {round}: Number of guesses needed: {num_guesses}")
 
     if num_guesses <= 0:
-        print(f"Round {round}: No guesses needed.")
         return []
 
     # Remove cards from list that are not valid guesses for this round.
     g_cards = get_guessable_cards(player, cards)
-    print(f"Round {round}: Guessable cards after filtering: {len(g_cards)}")
 
     if round <= NUM_WINDOW_ROUNDS:
         selected_guesses = use_best_window_lower_bound(player, g_cards)
@@ -248,7 +239,6 @@ def get_best_window_lower_bound(hand_indices, window=13, highest=52):
         return 0  # Default lower bound when hand is empty
 
     hand_sorted = sorted(hand_indices)
-    print(f"Hand sorted {hand_sorted}")
     min_window = 0
     max_cards_in_window = 0
 
