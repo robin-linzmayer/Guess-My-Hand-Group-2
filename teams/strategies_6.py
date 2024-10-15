@@ -1,7 +1,14 @@
 import random
 from CardGame import Card
 
-random_seed = 11024891
+RANDOM_SEED = 11024891
+
+PARTNER_MAP = {
+    "North": "South",
+    "East": "West",
+    "South": "North",
+    "West": "East",
+}
 
 def playing(player, deck):
     """
@@ -12,7 +19,7 @@ def playing(player, deck):
         return None
 
     deck = get_deck_of_cards()
-    cards_to_indices = create_card_to_index_mapping(random_seed, deck)
+    cards_to_indices, _ = create_card_to_index_mapping(RANDOM_SEED, deck)
     turn = 14 - len(player.hand)
     valid_cards_in_hand = sorted(player.hand, key=lambda card: cards_to_indices[card])
 
@@ -60,11 +67,11 @@ def guessing(player, cards, round):
     """
     Returns a list of n Card objects to guess partner's hand, incorporating feedback from previous guesses.
     """
+    partner = PARTNER_MAP[player.name]
     deck = get_deck_of_cards()
-    cards_to_indices, indices_to_cards = create_card_to_index_mapping(random_seed, deck, True)
+    cards_to_indices, indices_to_cards = create_card_to_index_mapping(RANDOM_SEED, deck)
 
     card_probs_by_index = {index: 1/52 for index in range(1, 53)}
-    partner = get_partner(player.name)
     certain_cards = []
     all_other_cards_exposed = []
     partner_cards_exposed = []
@@ -162,6 +169,7 @@ def update_probs_from_guesses(card_probs_by_index, player, partner_cards_exposed
                 exposed_card_count -= 1
         
         valid_unguessed_count = 39 - 4*(turn+1) - len(guess) - exposed_card_count + 1
+
         
         indices_to_delete = []
         for card in guess:
@@ -189,7 +197,7 @@ def update_probs_from_guesses(card_probs_by_index, player, partner_cards_exposed
 
     return card_probs_by_index
 
-def create_card_to_index_mapping(seed, cards, createReverseMap=False):
+def create_card_to_index_mapping(seed, cards):
     """
     Method which maps a card to a random index between 1-52.
     """
@@ -197,25 +205,12 @@ def create_card_to_index_mapping(seed, cards, createReverseMap=False):
     indices = random.sample(range(1, 53), 52)
 
     cards_to_indices = {card: index for card, index in zip(cards, indices)}
+    indices_to_cards = {index: card for card, index in cards_to_indices.items()}
     
-    if createReverseMap:
-        indices_to_cards = {index: card for card, index in cards_to_indices.items()}
-        return cards_to_indices, indices_to_cards
-    
-    return cards_to_indices
+    return cards_to_indices, indices_to_cards
 
 def get_deck_of_cards():
     suits = ["Hearts", "Diamonds", "Clubs", "Spades"] 
     values = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
     
     return [Card(suit, value) for value in values for suit in suits]
-
-def get_partner(my_name):
-    if my_name == "North":
-        return "South"
-    elif my_name == "East":
-        return "West"
-    elif my_name == "South":
-        return "North"
-    elif my_name == "West":
-        return "East"
