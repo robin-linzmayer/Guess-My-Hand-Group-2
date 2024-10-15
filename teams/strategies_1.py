@@ -12,6 +12,7 @@ prev_guesses_1 = []
 remaining_cards_2 = {}
 points_2 = {}
 prev_guesses_2 = []
+LATE_GAME_INDEX = 6
 
 def initialize_totals(deck, remaining_cards, points):
     # print("Initializing totals player")
@@ -95,6 +96,7 @@ def playing(player, deck):
         initialize_totals(deck, remaining_cards_local, points_local)
 
     cards_played = len(player.cVals)
+    # print(player.exposed_cards)
     remove_seen_till_last_round_playing(player.exposed_cards, remaining_cards_local, points_local, cards_played)
     rem = []
     for card in remaining_cards_local.keys():
@@ -104,38 +106,121 @@ def playing(player, deck):
     rem = sorted(rem)
     fake_suits = get_fake_suits(turn_number, rem, 4)
 
-    # Check which suit has the most cards in it matching with the player's hand
-    max_suit = -1
-    max_suit_count = -1
-    for fake_suit in fake_suits:
-        # Find number of cards matching with the player's hand
-        count = 0
-        for card in player.hand:
-            if card_to_idx(card) in fake_suit:
-                count += 1
-        if count > max_suit_count:
-            max_suit = fake_suit
-            max_suit_count = count
+    if turn_number < LATE_GAME_INDEX:
+        # Check which suit has the most cards in it matching with the player's hand
+        suit_counts = [0, 0, 0, 0]
+        for i, fake_suit in enumerate(fake_suits):
+            # Find number of cards matching with the player's hand
+            for card in player.hand:
+                if card_to_idx(card) in fake_suit:
+                    suit_counts[i] += 1
 
-    max_suit = sorted(max_suit)
-    card_played_idx = None
-    # Card with highest idx on even turns and with the lowest idx on odd turns and in hand
-    if turn_number %2 == 0:
-        card_played_idx = -1
-        card_index = -1
-        for i, card in enumerate(player.hand):
-            if card_to_idx(card) in max_suit and card_to_idx(card) > card_played_idx:
-                card_played_idx = card_to_idx(card)
-                card_index = i
-        return card_index
+        # Find the id of the suit with the most cards and second most cards
+        max_suit_id = suit_counts.index(max(suit_counts))
+        suit_counts[max_suit_id] = -1
+        second_max_suit_id = suit_counts.index(max(suit_counts))
+        suit_counts[second_max_suit_id] = -1
+        third_max_suit_id = suit_counts.index(max(suit_counts))
+        suit_counts[third_max_suit_id] = -1
+        fourth_max_suit_id = suit_counts.index(max(suit_counts))
+
+        pointer_suit = fake_suits[max_suit_id - 1 if max_suit_id != 0 else 3]
+        pointer_suit = sorted(pointer_suit)
+        # Card with highest idx on even turns and with the lowest idx on odd turns and in hand
+        if turn_number % 2 == 0:
+            card_played_idx = -1
+            card_index = -1
+            for i, card in enumerate(player.hand):
+                if card_to_idx(card) in pointer_suit and card_to_idx(card) > card_played_idx:
+                    card_played_idx = card_to_idx(card)
+                    card_index = i
+            if card_index == -1:
+                second_pointer_suit = fake_suits[second_max_suit_id - 1 if second_max_suit_id != 0 else 3]
+                second_pointer_suit = sorted(second_pointer_suit)
+                for i, card in enumerate(player.hand):
+                    if card_to_idx(card) in second_pointer_suit and card_to_idx(card) > card_played_idx:
+                        card_played_idx = card_to_idx(card)
+                        card_index = i
+
+            if card_index == -1:
+                third_pointer_suit = fake_suits[third_max_suit_id - 1 if third_max_suit_id != 0 else 3]
+                third_pointer_suit = sorted(third_pointer_suit)
+                for i, card in enumerate(player.hand):
+                    if card_to_idx(card) in third_pointer_suit and card_to_idx(card) > card_played_idx:
+                        card_played_idx = card_to_idx(card)
+                        card_index = i
+
+            if card_index == -1:
+                fourth_pointer_suit = fake_suits[fourth_max_suit_id - 1 if fourth_max_suit_id != 0 else 3]
+                fourth_pointer_suit = sorted(fourth_pointer_suit)
+                for i, card in enumerate(player.hand):
+                    if card_to_idx(card) in fourth_pointer_suit and card_to_idx(card) > card_played_idx:
+                        card_played_idx = card_to_idx(card)
+                        card_index = i
+            return card_index
+        else:
+            card_played_idx = 60
+            card_index = -1
+            for i, card in enumerate(player.hand):
+                if card_to_idx(card) in pointer_suit and card_to_idx(card) < card_played_idx:
+                    card_played_idx = card_to_idx(card)
+                    card_index = i
+            if card_index == -1:
+                second_pointer_suit = fake_suits[second_max_suit_id - 1 if second_max_suit_id != 0 else 3]
+                second_pointer_suit = sorted(second_pointer_suit)
+                for i, card in enumerate(player.hand):
+                    if card_to_idx(card) in second_pointer_suit and card_to_idx(card) < card_played_idx:
+                        card_played_idx = card_to_idx(card)
+                        card_index = i
+
+            if card_index == -1:
+                third_pointer_suit = fake_suits[third_max_suit_id - 1 if third_max_suit_id != 0 else 3]
+                third_pointer_suit = sorted(third_pointer_suit)
+                for i, card in enumerate(player.hand):
+                    if card_to_idx(card) in third_pointer_suit and card_to_idx(card) < card_played_idx:
+                        card_played_idx = card_to_idx(card)
+                        card_index = i
+
+            if card_index == -1:
+                fourth_pointer_suit = fake_suits[fourth_max_suit_id - 1 if fourth_max_suit_id != 0 else 3]
+                fourth_pointer_suit = sorted(fourth_pointer_suit)
+                for i, card in enumerate(player.hand):
+                    if card_to_idx(card) in fourth_pointer_suit and card_to_idx(card) < card_played_idx:
+                        card_played_idx = card_to_idx(card)
+                        card_index = i
+            return card_index
     else:
-        card_played_idx = 60
-        card_index = -1
-        for i, card in enumerate(player.hand):
-            if card_to_idx(card) in max_suit and card_to_idx(card) < card_played_idx:
-                card_played_idx = card_to_idx(card)
-                card_index = i
-        return card_index
+        # Check which suit has the most cards in it matching with the player's hand
+        max_suit = -1
+        max_suit_count = -1
+        for fake_suit in fake_suits:
+            # Find number of cards matching with the player's hand
+            count = 0
+            for card in player.hand:
+                if card_to_idx(card) in fake_suit:
+                    count += 1
+            if count > max_suit_count:
+                max_suit = fake_suit
+                max_suit_count = count
+
+        max_suit = sorted(max_suit)
+        # Card with highest idx on even turns and with the lowest idx on odd turns and in hand
+        if turn_number %2 == 0:
+            card_played_idx = -1
+            card_index = -1
+            for i, card in enumerate(player.hand):
+                if card_to_idx(card) in max_suit and card_to_idx(card) > card_played_idx:
+                    card_played_idx = card_to_idx(card)
+                    card_index = i
+            return card_index
+        else:
+            card_played_idx = 60
+            card_index = -1
+            for i, card in enumerate(player.hand):
+                if card_to_idx(card) in max_suit and card_to_idx(card) < card_played_idx:
+                    card_played_idx = card_to_idx(card)
+                    card_index = i
+            return card_index
 
 def update_points_with_guesses(guesses, points, prob):
     for card in guesses:
@@ -172,45 +257,90 @@ def guessing(player, cards, round):
     partner_card = player.exposed_cards[partner(player.name)][-1]
     partner_card_idx = card_to_idx(partner_card)
     # Find the suit of the card exposed by the partner
-    partner_suit = None
+    if turn_number < LATE_GAME_INDEX:
+        pointer_suit_id = -1
 
-    # Get the suit containing partner card
-    for suit in fake_suits:
-        if partner_card_idx in suit:
-            partner_suit = suit
-            break
+        # Get the suit containing partner card
+        for i, suit in enumerate(fake_suits):
+            if partner_card_idx in suit:
+                pointer_suit_id = i
+                break
 
-    partner_suit = sorted(partner_suit)
+        partner_suit = fake_suits[pointer_suit_id + 1 if pointer_suit_id != 3 else 0]
+        pointer_suit = fake_suits[pointer_suit_id]
+        partner_suit = sorted(partner_suit)
 
-    if turn_number%2 == 0:
-        for i, card_idx in enumerate(partner_suit):
-            if card_idx > partner_card_idx:
-                points_local[card_idx] = -100
+        if turn_number % 2 == 0:
+            for i, card_idx in enumerate(pointer_suit):
+                if card_idx > partner_card_idx:
+                    points_local[card_idx] = -100
+        else:
+            for i, card_idx in enumerate(pointer_suit):
+                if card_idx < partner_card_idx:
+                    points_local[card_idx] = -100
+
+        # Return the cards in the fake_suits[partner_suit]
+        remove_seen_till_last_round(player.exposed_cards, remaining_cards_local, points_local)
+        returned_cards = []
+        for i, card in enumerate(partner_suit):
+            if card != partner_card_idx and points_local[card] != -100:
+                points_local[card] += 0.1
+                returned_cards.append(idx_to_card(card))
+
+        # Sort the cards in decreasing order of points value
+        remaining = sorted(remaining_cards_local.keys(), key=lambda x: points_local[x], reverse=True)
+
+        for card in remaining:
+            if len(returned_cards) == 13 - round:
+                break
+            if card not in partner_suit:
+                returned_cards.append(idx_to_card(card))
+        if player.name == "North" or player.name == "East":
+            prev_guesses_1 = returned_cards
+        else:
+            prev_guesses_2 = returned_cards
+
+        return returned_cards
     else:
-        for i, card_idx in enumerate(partner_suit):
-            if card_idx < partner_card_idx:
-                points_local[card_idx] = -100
+        partner_suit = None
 
-    # Return the cards in the fake_suits[partner_suit]
-    remove_seen_till_last_round(player.exposed_cards, remaining_cards_local, points_local)
-    returned_cards = []
-    for i, card in enumerate(partner_suit):
-        if card != partner_card_idx and points_local[card] != -100:
-            points_local[card] += 0.1
-            returned_cards.append(idx_to_card(card))
+        # Get the suit containing partner card
+        for suit in fake_suits:
+            if partner_card_idx in suit:
+                partner_suit = suit
+                break
 
-    # Sort the cards in decreasing order of points value
-    remaining = sorted(remaining_cards_local.keys(), key=lambda x: points_local[x], reverse=True)
+        partner_suit = sorted(partner_suit)
 
-    for card in remaining:
-        if len(returned_cards) == 13 - round:
-            break
-        if card not in partner_suit:
-            returned_cards.append(idx_to_card(card))
-    if player.name == "North" or player.name == "East":
-        prev_guesses_1 = returned_cards
-    else:
-        prev_guesses_2 = returned_cards
+        if turn_number%2 == 0:
+            for i, card_idx in enumerate(partner_suit):
+                if card_idx > partner_card_idx:
+                    points_local[card_idx] = -100
+        else:
+            for i, card_idx in enumerate(partner_suit):
+                if card_idx < partner_card_idx:
+                    points_local[card_idx] = -100
 
-    return returned_cards
+        # Return the cards in the fake_suits[partner_suit]
+        remove_seen_till_last_round(player.exposed_cards, remaining_cards_local, points_local)
+        returned_cards = []
+        for i, card in enumerate(partner_suit):
+            if card != partner_card_idx and points_local[card] != -100:
+                points_local[card] += 0.1
+                returned_cards.append(idx_to_card(card))
+
+        # Sort the cards in decreasing order of points value
+        remaining = sorted(remaining_cards_local.keys(), key=lambda x: points_local[x], reverse=True)
+
+        for card in remaining:
+            if len(returned_cards) == 13 - round:
+                break
+            if card not in partner_suit:
+                returned_cards.append(idx_to_card(card))
+        if player.name == "North" or player.name == "East":
+            prev_guesses_1 = returned_cards
+        else:
+            prev_guesses_2 = returned_cards
+
+        return returned_cards
 
