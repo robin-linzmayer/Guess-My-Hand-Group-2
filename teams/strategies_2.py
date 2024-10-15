@@ -90,11 +90,29 @@ def get_guessable_cards(player, cards):
         g_cards = list(set(g_cards) - set(exposed))
     return g_cards
 
+def clean_guess_history(player, s_cards):
+    cleaned_guesses = []
+    cleaned_cvals = []
+    for r in range(0, len(player.guesses)):
+        r_guess = player.guesses[r]
+        cleaned_guess = [g for g in r_guess if g in s_cards]
+
+        # If cards were removed from the round also adjust the cValue
+        num_removed = len(r_guess) - len(cleaned_guess)
+        adj_cval = player.cVals[r] - num_removed
+
+        # Write out the adjusted round
+        cleaned_guesses = cleaned_guesses + [cleaned_guess]
+        cleaned_cvals = cleaned_cvals + [adj_cval]
+    return cleaned_guesses, cleaned_cvals
+
 def get_card_prob(player, s_cards, round):
 
     P = 13 - round    # Number of cards in your Partner's hand
     T = len(s_cards)  # Number of cards that could be in partner's hand based on Strategy (all possible cards to build our guess from)
     probs = [1 / T] * T
+
+    cleaned_guesses, cleaned_cvals = clean_guess_history(player, s_cards)
 
     if P == T or round == 1:
         return probs
