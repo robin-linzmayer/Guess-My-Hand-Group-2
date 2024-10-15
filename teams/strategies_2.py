@@ -247,7 +247,8 @@ def get_best_window_lower_bound(hand_indices, window=13, highest=52):
     if not hand_indices:
         return 0  # Default lower bound when hand is empty
 
-    hand_sorted = sorted(hand_indices) 
+    hand_sorted = sorted(hand_indices)
+    print(f"Hand sorted {hand_sorted}")
     min_window = 0
     max_cards_in_window = 0
 
@@ -268,4 +269,6 @@ def get_best_window_lower_bound(hand_indices, window=13, highest=52):
             max_cards_in_window = num_cards
             min_window = min_card
 
+    if min_window == 0:
+        min_window = random.choice(hand_indices)
     return hand_indices.index(min_window)
