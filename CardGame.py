@@ -75,6 +75,7 @@ class Player:
         self.exposed_cards = {"North": [], "East": [], "South": [], "West": []}
         self.cVals = []
 
+    
     def draw(self, deck):
         card = deck.draw()
         if card:
