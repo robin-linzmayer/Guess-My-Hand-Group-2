@@ -40,6 +40,6 @@ def get_likelihood_weight_distribution(turn_dataset: List[Dict[str, Any]]) -> Di
     probability_table = "[DEBUG] Card Number \t| Probability\n" + "-" * 30 + "\n"
     for card, prob in sorted_distribution:
         probability_table += f"{idx_to_card(card)} \t| {prob:.4f}\n"
-    print(probability_table)
+    # print(probability_table)
 
     return weight
