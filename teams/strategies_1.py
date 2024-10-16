@@ -3,6 +3,7 @@ import random
 from typing import List
 
 from CardGame import Deck, Player
+from teams.strategy_1.weight_distribution import get_likelihood_weight_distribution
 from teams.strategy_1.util import partner, card_to_idx, idx_to_card
 from teams.strategy_1.turn_suits import get_fake_suits
 
@@ -13,6 +14,10 @@ remaining_cards_2 = {}
 points_2 = {}
 prev_guesses_2 = []
 LATE_GAME_INDEX = 6
+
+guesses_and_c_vals_1 = []
+guesses_and_c_vals_2 = []
+
 
 def initialize_totals(deck, remaining_cards, points):
     # print("Initializing totals player")
@@ -25,9 +30,15 @@ def initialize_totals_guessing(deck, remaining_cards, points, player_name):
     if player_name == "North" or player_name == "East":
         global prev_guesses_1
         prev_guesses_1 = []
+
+        global guesses_and_c_vals_1
+        guesses_and_c_vals_1 = []
     else:
         global prev_guesses_2
         prev_guesses_2 = []
+
+        global guesses_and_c_vals_2
+        guesses_and_c_vals_2 = []
     for card in deck:
         remaining_cards[card_to_idx(card)] = 1
         points[card_to_idx(card)] = 0
@@ -222,21 +233,33 @@ def playing(player, deck):
                     card_index = i
             return card_index
 
-def update_points_with_guesses(guesses, points, prob):
+def update_points_with_guesses(guesses, points, prob, c_val, datastore):
     for card in guesses:
         points[card_to_idx(card)] += prob - 0.3
+    
+    turn_data = {
+        "guesses": guesses,
+        "c_val": c_val
+    }
+    datastore.append(turn_data)
+
 
 def guessing(player, cards, round):
     global prev_guesses_2
     global prev_guesses_1
+    global guesses_and_c_vals_1
+    global guesses_and_c_vals_2
+
     if player.name == "North" or player.name == "East":
         remaining_cards_local = remaining_cards_1
         points_local = points_1
         prev_guesses_local = prev_guesses_1
+        guesses_and_c_vals_local = guesses_and_c_vals_1
     else:
         remaining_cards_local = remaining_cards_2
         points_local = points_2
         prev_guesses_local = prev_guesses_2
+        guesses_and_c_vals_local = guesses_and_c_vals_2
 
     if round == 1:
         initialize_totals_guessing(cards, remaining_cards_local, points_local, player.name)
@@ -250,9 +273,20 @@ def guessing(player, cards, round):
     turn_number = len(player.cVals) + 1
 
     if turn_number > 1:
-        update_points_with_guesses(prev_guesses_local, points_local, player.cVals[-1]/(13-round+1))
+        update_points_with_guesses(
+            prev_guesses_local,
+            points_local,
+            player.cVals[-1]/(13-round+1), 
+            player.cVals[-1], 
+            guesses_and_c_vals_local,
+        )
     rem = sorted(rem)
     fake_suits = get_fake_suits(turn_number, rem, 4)
+
+    print(f"Check prob datastore: {guesses_and_c_vals_local}")
+    # TODO: below is how you can get the weight distribution to use for guessing
+    weight_distribution = get_likelihood_weight_distribution(guesses_and_c_vals_local)
+    print(f"w_d: {weight_distribution}")
 
     partner_card = player.exposed_cards[partner(player.name)][-1]
     partner_card_idx = card_to_idx(partner_card)
