@@ -71,9 +71,9 @@ def generate_permutation(perm_size, seedcard, player, unguessed_cards):
     # np.random.seed(seed)
     # sample2 = np.random.choice(unguessed, perm_size, replace=False)
     
-    print("Seed", seed)
+    # print("Seed", seed)
     sample = random.sample(unguessed, perm_size)
-    print("Card", seedcard, "Perm size", perm_size, "Sample", sample)
+    # print("Card", seedcard, "Perm size", perm_size, "Sample", sample)
     
     return sample
 
@@ -151,7 +151,7 @@ def round_1_strategy(player, remaining_cards):
 
     remaining_cards = [card for card in remaining_cards if card.suit != suit]
     suit_groups = group_cards_by_suit(remaining_cards)
-
+    random.seed(7)
     selected_cards = [
         card
         for _, cards in suit_groups.items()
@@ -248,12 +248,12 @@ def playing(player: Player, deck: Deck):
     """
     global PERMUTATIONS_SEEN
     game_round = len(player.played_cards) + 1
-    print("SEED", deck.seed)
+    # print("SEED", deck.seed)
     player.hand=sorted(player.hand, key=lambda k: VAL_TO_NUM[k.value] + SUIT_TO_NUM[k.suit])
 
     if game_round == 1:
         PERMUTATIONS_SEEN = []
-        print("PLAYER", player.name,PERMUTATIONS_SEEN, deck.seed, player.hand)
+        # print("PLAYER", player.name,PERMUTATIONS_SEEN, deck.seed, player.hand)
         freq = get_suit_frequencies(player.hand)
         min_suit = min(freq, key=freq.get)
         max_card_in_min_suit = max(
