@@ -13,7 +13,9 @@ prev_guesses_1 = []
 remaining_cards_2 = {}
 points_2 = {}
 prev_guesses_2 = []
-LATE_GAME_INDEX = 6
+LATE_GAME_INDEX = 10
+SUIT_GUESS_POINTS = 1
+INCORRECT_GUESS_POINTS = -0.5
 
 guesses_and_c_vals_1 = []
 guesses_and_c_vals_2 = []
@@ -235,8 +237,8 @@ def playing(player, deck):
 
 def update_points_with_guesses(guesses, points, prob, c_val, datastore):
     for card in guesses:
-        points[card_to_idx(card)] += prob - 0.3
-    
+        points[card_to_idx(card)] += prob + INCORRECT_GUESS_POINTS
+
     turn_data = {
         "guesses": guesses,
         "c_val": c_val
@@ -276,8 +278,8 @@ def guessing(player, cards, round):
         update_points_with_guesses(
             prev_guesses_local,
             points_local,
-            player.cVals[-1]/(13-round+1), 
-            player.cVals[-1], 
+            player.cVals[-1]/(13-round+1),
+            player.cVals[-1],
             guesses_and_c_vals_local,
         )
     rem = sorted(rem)
@@ -318,7 +320,7 @@ def guessing(player, cards, round):
         returned_cards = []
         for i, card in enumerate(partner_suit):
             if card != partner_card_idx and points_local[card] != -100:
-                points_local[card] += 0.1
+                points_local[card] += SUIT_GUESS_POINTS
                 returned_cards.append(idx_to_card(card))
 
         # Sort the cards in decreasing order of points value
